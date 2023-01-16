@@ -41,17 +41,17 @@ contract SubprotocolRegistry {
     error SubprotocolAlreadyExists(string name, address owner);
 
 
-    function register(bool ordered, bool primary, bool active, address nftAddress, string calldata name, uint96 fee) external {
-        SubprotocolData memory subprotocolData = subprotocols[name];
+    function register(bool _ordered, bool _primary, bool _active, address _nftAddress, string calldata _name, uint96 _fee) external {
+        SubprotocolData memory subprotocolData = subprotocols[_name];
         if (subprotocolData.owner != address(0))
-            revert SubprotocolAlreadyExists(name, subprotocolData.owner);
+            revert SubprotocolAlreadyExists(_name, subprotocolData.owner);
         subprotocolData.owner = msg.sender;
-        subprotocolData.fee = fee;
-        subprotocolData.nftAddress = nftAddress;
-        subprotocolData.ordered = ordered;
-        subprotocolData.primary = primary;
-        subprotocolData.active = active;
-        subprotocols[name] = subprotocolData;
+        subprotocolData.fee = _fee;
+        subprotocolData.nftAddress = _nftAddress;
+        subprotocolData.ordered = _ordered;
+        subprotocolData.primary = _primary;
+        subprotocolData.active = _active;
+        subprotocols[_name] = subprotocolData;
     }
 
 }
