@@ -53,8 +53,8 @@ contract AddressRegistry {
     }
 
     /// @dev Returns 0 when no CID NFT is registered for the given user
-    function getCID(address _user) external {
-        return cidNFTs[_user];
+    function getCID(address _user) external view returns (uint cidNFTID) {
+        cidNFTID = cidNFTs[_user];
     }
 
 }
