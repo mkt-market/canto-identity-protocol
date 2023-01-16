@@ -7,6 +7,13 @@ import "solmate/tokens/ERC721.sol";
 /// @notice CID NFTs are at the heart of the CID protocol. All key/values of subprotocols are associated with them.
 contract CidNFT is ERC721 {
     /*//////////////////////////////////////////////////////////////
+                                 CONSTANTS
+    //////////////////////////////////////////////////////////////*/
+    /// @notice Fee (in BPS) that is charged for every mint (as a percentage of the mint fee). Fixed at 10%.
+    uint public constant cidFee = 1_000;
+
+
+    /*//////////////////////////////////////////////////////////////
                                  ADDRESSES
     //////////////////////////////////////////////////////////////*/
 
@@ -14,7 +21,15 @@ contract CidNFT is ERC721 {
     address public immutable cidFeeWallet;
 
     /// @notice Base URI of the NFT
-    string public immutable baseURI;
+    string public baseURI;
+
+    /*//////////////////////////////////////////////////////////////
+                                 STATE
+    //////////////////////////////////////////////////////////////*/
+    
+    /// @notice Counter of the minted NFTs
+    /// @dev Used to assign a new unique ID. The first ID that is assigned is 1, ID 0 is never minted.
+    uint public numMinted;
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -32,10 +47,10 @@ contract CidNFT is ERC721 {
         string memory _name,
         string memory _symbol,
         string memory _baseURI,
-        address _factory,
         address _cidFeeWallet
     ) ERC721(_name, _symbol) {
         baseURI = _baseURI;
+        cidFeeWallet = _cidFeeWallet;
     }
 
     /// @notice Get the token URI for the provided ID
@@ -46,9 +61,16 @@ contract CidNFT is ERC721 {
         override
         returns (string memory)
     {
-        if (_ownerOf[_id] == address(0))
+        if (ownerOf[_id] == address(0))
             // According to ERC721, this revert for non-existing tokens is required
             revert TokenNotMinted();
         return string(abi.encodePacked(baseURI, _id, ".json"));
+    }
+
+    function mint(bytes[] calldata _addList) external {
+        _mint(msg.sender, ++numMinted);
+        if (_addList.length != 0) {
+            // TODO: call add with the provided calldata
+        }
     }
 }
