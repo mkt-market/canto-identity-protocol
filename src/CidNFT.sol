@@ -2,7 +2,7 @@
 pragma solidity >=0.8.0;
 
 import "solmate/tokens/ERC721.sol";
-import "SubprotocolRegistry.sol";
+import "./SubprotocolRegistry.sol";
 
 /// @title Canto Identity Protocol NFT
 /// @notice CID NFTs are at the heart of the CID protocol. All key/values of subprotocols are associated with them.
@@ -45,11 +45,11 @@ contract CidNFT is ERC721 {
     /// @dev Used to assign a new unique ID. The first ID that is assigned is 1, ID 0 is never minted.
     uint public numMinted;
 
-    mapping (uint => mapping(uint => uint)) public CIDDataOrdered;
+    mapping (uint => mapping(string => mapping(uint => uint))) public CIDDataOrdered;
 
-    mapping (uint => mapping(string => uint)) public CIDDataPrimary;
+    mapping (uint => mapping(string => mapping(string => uint))) public CIDDataPrimary;
 
-    mapping (uint => mapping(string => uint[])) public CIDDataActive;
+    mapping (uint => mapping(string => mapping(string => uint[]))) public CIDDataActive;
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -57,7 +57,7 @@ contract CidNFT is ERC721 {
 
     error TokenNotMinted();
     error SubprotocolDoesNotExist(string subprotocolName);
-    error InvalidValueTypeLengthCombination(ValueType valueType, uint nftIDsLength);
+    error ValueTypeNotSupportedForSubprotocol(ValueType valueType, string subprotocolName);
 
     /// @notice Sets the name, symbol, baseURI, and the address of the auction factory
     /// @param _name Name of the NFT
@@ -103,13 +103,34 @@ contract CidNFT is ERC721 {
 
     /// @param _key Key to set. This value is only relevant for the ValueType PRIMARY or ACTIVE (with strings as keys)
     /// @param _keyID ID (integer key) to set. This value is only relevant for the ValueType ORDERED (with integers as keys)
-    /// @param _nftIDsToAdd The IDs of the NFTs to add. For type PRIMARY or ORDERED, one value must be provided. For type ACTIVE, multiple values can be provided
-    function add(uint _cidNftID, string _key, uint _keyID, string _subprotocolName, uint[] calldata _nftIDsToAdd, ValueType _type) external {
-        SubprotocolData memory subprotocolData = subprotocolRegistry.subprotocols(_subprotocolName);
+    /// @param _nftIDToAdd The ID of the NFT to add.
+    function add(uint _cidNftID, string calldata _key, uint _keyID, string calldata _subprotocolName, uint _nftIDToAdd, ValueType _type) external {
+        SubprotocolRegistry.SubprotocolData memory subprotocolData = subprotocolRegistry.getSubprotocol(_subprotocolName);
         if (subprotocolData.owner == address(0))
             revert SubprotocolDoesNotExist(_subprotocolName);
-        if (((_type == ValueType.PRIMARY || _type == ValueType.ORDERED) && _nftIDsToAdd.length != 1) || 
-            (_type == ValueType.ACTIVE && _nftIDsToAdd.length == 0))
-            revert InvalidValueTypeLengthCombination(_type, _nftIDsToAdd.length);
+        // TODO: Check owner
+        if (_type == ValueType.ORDERED) {
+            if (!subprotocolData.ordered)
+                revert ValueTypeNotSupportedForSubprotocol(_type, _subprotocolName);
+            
+            CIDDataOrdered[_cidNftID][_subprotocolName][_keyID] = _nftIDToAdd; // TODO: Disallow adding 0? Would need to be a disallowed ID in identity subprotocols
+        } else if (_type == ValueType.PRIMARY) {
+            if (!subprotocolData.primary)
+                revert ValueTypeNotSupportedForSubprotocol(_type, _subprotocolName);
+            
+            CIDDataPrimary[_cidNftID][_subprotocolName][_key] = _nftIDToAdd;
+        } else if (_type == ValueType.ACTIVE) {
+            if (!subprotocolData.active)
+                revert ValueTypeNotSupportedForSubprotocol(_type, _subprotocolName);
+
+            if (CIDDataActive[_cidNftID][_subprotocolName][_key].length == 0) {
+                uint[] memory nftIDs = new uint[](1);
+                nftIDs[0] = _nftIDToAdd;
+                CIDDataActive[_cidNftID][_subprotocolName][_key] = nftIDs;
+            } else {
+                // In theory, this could introduce duplicates or result in a very large array (causing out of gas)
+                CIDDataActive[_cidNftID][_subprotocolName][_key].push(_nftIDToAdd);
+            }
+        }
     }
 }
