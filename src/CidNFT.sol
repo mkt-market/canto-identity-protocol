@@ -52,14 +52,11 @@ contract CidNFT is ERC721 {
     /// @dev Used to assign a new unique ID. The first ID that is assigned is 1, ID 0 is never minted.
     uint256 public numMinted;
 
-    mapping(uint256 => mapping(string => mapping(uint256 => uint256)))
-        public CIDDataOrdered;
+    mapping(uint256 => mapping(string => mapping(uint256 => uint256))) public CIDDataOrdered;
 
-    mapping(uint256 => mapping(string => mapping(string => uint256)))
-        public CIDDataPrimary;
+    mapping(uint256 => mapping(string => mapping(string => uint256))) public CIDDataPrimary;
 
-    mapping(uint256 => mapping(string => mapping(string => IndexedArray)))
-        public CIDDataActive;
+    mapping(uint256 => mapping(string => mapping(string => IndexedArray))) internal CIDDataActive;
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -67,21 +64,12 @@ contract CidNFT is ERC721 {
 
     error TokenNotMinted();
     error SubprotocolDoesNotExist(string subprotocolName);
-    error ValueTypeNotSupportedForSubprotocol(
-        ValueType valueType,
-        string subprotocolName
-    );
+    error ValueTypeNotSupportedForSubprotocol(ValueType valueType, string subprotocolName);
     error NotAuthorizedForCIDNFT(address caller, uint256 cidNFTID);
-    error OrderedValueNotSet(
-        uint256 cidNFTID,
-        string subprotocolName,
-        uint256 keyID
-    );
-    error PrimaryValueNotSet(
-        uint256 cidNFTID,
-        string subprotocolName,
-        string key
-    );
+    error ActiveArrayAlreadyContainsID(uint256 cidNFTID, string subprotocolName, string key, uint256 NFTIDToAdd);
+    error OrderedValueNotSet(uint256 cidNFTID, string subprotocolName, uint256 keyID);
+    error PrimaryValueNotSet(uint256 cidNFTID, string subprotocolName, string key);
+    error ActiveArrayDoesNotContainID(uint256 cidNFTID, string subprotocolName, string key, uint256 NFTIDToRemove);
 
     /// @notice Sets the name, symbol, baseURI, and the address of the auction factory
     /// @param _name Name of the NFT
@@ -106,12 +94,7 @@ contract CidNFT is ERC721 {
 
     /// @notice Get the token URI for the provided ID
     /// @param _id ID to retrieve the URI for
-    function tokenURI(uint256 _id)
-        public
-        view
-        override
-        returns (string memory)
-    {
+    function tokenURI(uint256 _id) public view override returns (string memory) {
         if (ownerOf[_id] == address(0))
             // According to ERC721, this revert for non-existing tokens is required
             revert TokenNotMinted();
@@ -136,13 +119,11 @@ contract CidNFT is ERC721 {
         uint256 _nftIDToAdd,
         ValueType _type
     ) external {
-        SubprotocolRegistry.SubprotocolData
-            memory subprotocolData = subprotocolRegistry.getSubprotocol(
-                _subprotocolName
-            );
+        SubprotocolRegistry.SubprotocolData memory subprotocolData = subprotocolRegistry.getSubprotocol(
+            _subprotocolName
+        );
         address subprotocolOwner = subprotocolData.owner;
-        if (subprotocolOwner == address(0))
-            revert SubprotocolDoesNotExist(_subprotocolName);
+        if (subprotocolOwner == address(0)) revert SubprotocolDoesNotExist(_subprotocolName);
         if (ownerOf[_cidNftID] != msg.sender)
             // TODO: Should delegated users be allowed to add?
             revert NotAuthorizedForCIDNFT(msg.sender, _cidNftID);
@@ -150,51 +131,32 @@ contract CidNFT is ERC721 {
         uint96 subprotocolFee = subprotocolData.fee;
         if (subprotocolFee != 0) {
             uint256 cidFee = (subprotocolFee * cidFeeBps) / 10_000;
-            SafeTransferLib.safeTransferFrom(
-                note,
-                msg.sender,
-                cidFeeWallet,
-                cidFee
-            );
-            SafeTransferLib.safeTransferFrom(
-                note,
-                msg.sender,
-                subprotocolOwner,
-                subprotocolFee - cidFee
-            );
+            SafeTransferLib.safeTransferFrom(note, msg.sender, cidFeeWallet, cidFee);
+            SafeTransferLib.safeTransferFrom(note, msg.sender, subprotocolOwner, subprotocolFee - cidFee);
         }
         if (_type == ValueType.ORDERED) {
-            if (!subprotocolData.ordered)
-                revert ValueTypeNotSupportedForSubprotocol(
-                    _type,
-                    _subprotocolName
-                );
+            if (!subprotocolData.ordered) revert ValueTypeNotSupportedForSubprotocol(_type, _subprotocolName);
 
             CIDDataOrdered[_cidNftID][_subprotocolName][_keyID] = _nftIDToAdd; // TODO: Disallow adding 0? Would need to be a disallowed ID in identity subprotocols
         } else if (_type == ValueType.PRIMARY) {
-            if (!subprotocolData.primary)
-                revert ValueTypeNotSupportedForSubprotocol(
-                    _type,
-                    _subprotocolName
-                );
+            if (!subprotocolData.primary) revert ValueTypeNotSupportedForSubprotocol(_type, _subprotocolName);
 
             CIDDataPrimary[_cidNftID][_subprotocolName][_key] = _nftIDToAdd;
         } else if (_type == ValueType.ACTIVE) {
-            if (!subprotocolData.active)
-                revert ValueTypeNotSupportedForSubprotocol(
-                    _type,
-                    _subprotocolName
-                );
-
-            if (CIDDataActive[_cidNftID][_subprotocolName][_key].length == 0) {
-                uint256[] memory nftIDs = new uint256[](1);
-                nftIDs[0] = _nftIDToAdd;
-                CIDDataActive[_cidNftID][_subprotocolName][_key] = nftIDs; // TODO: Emit events
+            if (!subprotocolData.active) revert ValueTypeNotSupportedForSubprotocol(_type, _subprotocolName);
+            IndexedArray storage keyData = CIDDataActive[_cidNftID][_subprotocolName][_key];
+            uint256 lengthBeforeAddition = keyData.values.length;
+            if (lengthBeforeAddition == 0) {
+                uint256[] memory nftIDsToAdd = new uint256[](1);
+                nftIDsToAdd[0] = _nftIDToAdd;
+                keyData.values = nftIDsToAdd; // TODO: Emit events
+                keyData.positions[_nftIDToAdd] = 1; // Array index + 1
             } else {
-                // In theory, this could introduce duplicates or result in a very large array (causing out of gas)
-                CIDDataActive[_cidNftID][_subprotocolName][_key].push(
-                    _nftIDToAdd
-                );
+                // Check for duplicates
+                if (keyData.positions[_nftIDToAdd] != 0)
+                    revert ActiveArrayAlreadyContainsID(_cidNftID, _subprotocolName, _key, _nftIDToAdd);
+                keyData.values.push(_nftIDToAdd);
+                keyData.positions[_nftIDToAdd] = lengthBeforeAddition + 1;
             }
         }
     }
@@ -210,13 +172,11 @@ contract CidNFT is ERC721 {
         uint256 _nftIDToRemove,
         ValueType _type
     ) external {
-        SubprotocolRegistry.SubprotocolData
-            memory subprotocolData = subprotocolRegistry.getSubprotocol(
-                _subprotocolName
-            );
+        SubprotocolRegistry.SubprotocolData memory subprotocolData = subprotocolRegistry.getSubprotocol(
+            _subprotocolName
+        );
         address subprotocolOwner = subprotocolData.owner;
-        if (subprotocolOwner == address(0))
-            revert SubprotocolDoesNotExist(_subprotocolName);
+        if (subprotocolOwner == address(0)) revert SubprotocolDoesNotExist(_subprotocolName);
 
         if (ownerOf[_cidNftID] != msg.sender)
             // TODO: Should delegated users be allowed to remove?
@@ -233,7 +193,19 @@ contract CidNFT is ERC721 {
                 revert PrimaryValueNotSet(_cidNftID, _subprotocolName, _key);
             delete CIDDataPrimary[_cidNftID][_subprotocolName][_key];
         } else if (_type == ValueType.ACTIVE) {
-            // TODO: Efficient deletion of lists
+            IndexedArray storage keyData = CIDDataActive[_cidNftID][_subprotocolName][_key];
+            uint256 arrayPosition = keyData.positions[_nftIDToRemove]; // Index + 1, 0 if non-existant
+            if (arrayPosition == 0)
+                revert ActiveArrayDoesNotContainID(_cidNftID, _subprotocolName, _key, _nftIDToRemove);
+            uint256 arrayLength = keyData.values.length;
+            // Swap only necessary if not already the last element
+            if (arrayPosition != arrayLength) {
+                uint befSwapLastNftID = keyData.values[arrayLength - 1];
+                keyData.values[arrayPosition - 1] = befSwapLastNftID;
+                keyData.positions[befSwapLastNftID] = arrayPosition;
+            }
+            keyData.values.pop();
+            keyData.positions[_nftIDToRemove] = 0;
         }
     }
 }
