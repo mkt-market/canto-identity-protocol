@@ -35,6 +35,12 @@ contract CidNFT is ERC721 {
                                  STATE
     //////////////////////////////////////////////////////////////*/
 
+    /// @notice Array of uint256 values (NFT IDs) with additional position information NFT ID => (array pos. + 1)
+    struct IndexedArray {
+        uint256[] values;
+        mapping(uint256 => uint256) positions;
+    }
+
     /// @notice The different types of value that can be added for a given key
     enum ValueType {
         ORDERED,
@@ -52,7 +58,7 @@ contract CidNFT is ERC721 {
     mapping(uint256 => mapping(string => mapping(string => uint256)))
         public CIDDataPrimary;
 
-    mapping(uint256 => mapping(string => mapping(string => uint256[])))
+    mapping(uint256 => mapping(string => mapping(string => IndexedArray)))
         public CIDDataActive;
 
     /*//////////////////////////////////////////////////////////////
@@ -66,6 +72,16 @@ contract CidNFT is ERC721 {
         string subprotocolName
     );
     error NotAuthorizedForCIDNFT(address caller, uint256 cidNFTID);
+    error OrderedValueNotSet(
+        uint256 cidNFTID,
+        string subprotocolName,
+        uint256 keyID
+    );
+    error PrimaryValueNotSet(
+        uint256 cidNFTID,
+        string subprotocolName,
+        string key
+    );
 
     /// @notice Sets the name, symbol, baseURI, and the address of the auction factory
     /// @param _name Name of the NFT
@@ -173,13 +189,51 @@ contract CidNFT is ERC721 {
             if (CIDDataActive[_cidNftID][_subprotocolName][_key].length == 0) {
                 uint256[] memory nftIDs = new uint256[](1);
                 nftIDs[0] = _nftIDToAdd;
-                CIDDataActive[_cidNftID][_subprotocolName][_key] = nftIDs;
+                CIDDataActive[_cidNftID][_subprotocolName][_key] = nftIDs; // TODO: Emit events
             } else {
                 // In theory, this could introduce duplicates or result in a very large array (causing out of gas)
                 CIDDataActive[_cidNftID][_subprotocolName][_key].push(
                     _nftIDToAdd
                 );
             }
+        }
+    }
+
+    /// @param _key Key to set. This value is only relevant for the ValueType PRIMARY or ACTIVE (with strings as keys)
+    /// @param _keyID ID (integer key) to set. This value is only relevant for the ValueType ORDERED (with integers as keys)
+    /// @param _nftIDToRemove The ID of the NFT to remove. Only needed for type ACTIVE, as the key is sufficent, otherwise
+    function remove(
+        uint256 _cidNftID,
+        string calldata _key,
+        uint256 _keyID,
+        string calldata _subprotocolName,
+        uint256 _nftIDToRemove,
+        ValueType _type
+    ) external {
+        SubprotocolRegistry.SubprotocolData
+            memory subprotocolData = subprotocolRegistry.getSubprotocol(
+                _subprotocolName
+            );
+        address subprotocolOwner = subprotocolData.owner;
+        if (subprotocolOwner == address(0))
+            revert SubprotocolDoesNotExist(_subprotocolName);
+
+        if (ownerOf[_cidNftID] != msg.sender)
+            // TODO: Should delegated users be allowed to remove?
+            revert NotAuthorizedForCIDNFT(msg.sender, _cidNftID);
+        if (_type == ValueType.ORDERED) {
+            // We do not have to check if ordered is supported by the subprotocol. If not, the value will not be set (which is checked below)
+            if (CIDDataOrdered[_cidNftID][_subprotocolName][_keyID] == 0)
+                // This check is technically not necessary, but we include it to only emit an event when a key is truly unset
+                revert OrderedValueNotSet(_cidNftID, _subprotocolName, _keyID);
+            delete CIDDataOrdered[_cidNftID][_subprotocolName][_keyID];
+            // TODO: Event
+        } else if (_type == ValueType.PRIMARY) {
+            if (CIDDataPrimary[_cidNftID][_subprotocolName][_key] == 0)
+                revert PrimaryValueNotSet(_cidNftID, _subprotocolName, _key);
+            delete CIDDataPrimary[_cidNftID][_subprotocolName][_key];
+        } else if (_type == ValueType.ACTIVE) {
+            // TODO: Efficient deletion of lists
         }
     }
 }
