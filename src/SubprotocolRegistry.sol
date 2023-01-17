@@ -8,7 +8,6 @@ contract SubprotocolRegistry {
                                  ADDRESSES
     //////////////////////////////////////////////////////////////*/
 
-
     /*//////////////////////////////////////////////////////////////
                                  STATE
     //////////////////////////////////////////////////////////////*/
@@ -34,14 +33,19 @@ contract SubprotocolRegistry {
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
 
-
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
     error SubprotocolAlreadyExists(string name, address owner);
 
-
-    function register(bool _ordered, bool _primary, bool _active, address _nftAddress, string calldata _name, uint96 _fee) external {
+    function register(
+        bool _ordered,
+        bool _primary,
+        bool _active,
+        address _nftAddress,
+        string calldata _name,
+        uint96 _fee
+    ) external {
         SubprotocolData memory subprotocolData = subprotocols[_name];
         if (subprotocolData.owner != address(0))
             revert SubprotocolAlreadyExists(_name, subprotocolData.owner);
@@ -54,7 +58,11 @@ contract SubprotocolRegistry {
         subprotocols[_name] = subprotocolData;
     }
 
-    function getSubprotocol(string calldata _name) external view returns (SubprotocolData memory) {
+    function getSubprotocol(string calldata _name)
+        external
+        view
+        returns (SubprotocolData memory)
+    {
         return subprotocols[_name];
     }
 }

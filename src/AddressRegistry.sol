@@ -18,43 +18,41 @@ contract AddressRegistry {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Stores the mappings of users to their CID NFTR
-    mapping (address => uint) private cidNFTs;
+    mapping(address => uint256) private cidNFTs;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
-    event CIDNFTAdded(address indexed user, uint indexed cidNFTID);
-    event CIDNFTRemoved(address indexed user, uint indexed cidNFTID);
-
+    event CIDNFTAdded(address indexed user, uint256 indexed cidNFTID);
+    event CIDNFTRemoved(address indexed user, uint256 indexed cidNFTID);
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
-    error NftNotOwnedByUser(uint cidNFTID, address caller);
+    error NftNotOwnedByUser(uint256 cidNFTID, address caller);
     error NoCIDNFTRegisteredForUser(address caller);
 
     constructor(address _cidNFT) {
         cidNFT = _cidNFT;
     }
 
-    function register(uint _cidNFTID) external {
-        if (ERC721(cidNFT).ownerOf(_cidNFTID) != msg.sender) // ownerOf reverts if non-existing ID is provided
+    function register(uint256 _cidNFTID) external {
+        if (ERC721(cidNFT).ownerOf(_cidNFTID) != msg.sender)
+            // ownerOf reverts if non-existing ID is provided
             revert NftNotOwnedByUser(_cidNFTID, msg.sender);
         cidNFTs[msg.sender] = _cidNFTID;
         emit CIDNFTAdded(msg.sender, _cidNFTID);
     }
 
     function remove() external {
-        uint cidNFTID = cidNFTs[msg.sender];
-        if (cidNFTID == 0)
-            revert NoCIDNFTRegisteredForUser(msg.sender);
+        uint256 cidNFTID = cidNFTs[msg.sender];
+        if (cidNFTID == 0) revert NoCIDNFTRegisteredForUser(msg.sender);
         delete cidNFTs[msg.sender];
         emit CIDNFTRemoved(msg.sender, cidNFTID);
     }
 
     /// @dev Returns 0 when no CID NFT is registered for the given user
-    function getCID(address _user) external view returns (uint cidNFTID) {
+    function getCID(address _user) external view returns (uint256 cidNFTID) {
         cidNFTID = cidNFTs[_user];
     }
-
 }

@@ -13,8 +13,7 @@ contract CidNFT is ERC721 {
                                  CONSTANTS
     //////////////////////////////////////////////////////////////*/
     /// @notice Fee (in BPS) that is charged for every mint (as a percentage of the mint fee). Fixed at 10%.
-    uint public constant cidFeeBps = 1_000;
-
+    uint256 public constant cidFeeBps = 1_000;
 
     /*//////////////////////////////////////////////////////////////
                                  ADDRESSES
@@ -36,22 +35,25 @@ contract CidNFT is ERC721 {
                                  STATE
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice The different types of value that can be added for a given key 
+    /// @notice The different types of value that can be added for a given key
     enum ValueType {
         ORDERED,
         PRIMARY,
         ACTIVE
     }
-    
+
     /// @notice Counter of the minted NFTs
     /// @dev Used to assign a new unique ID. The first ID that is assigned is 1, ID 0 is never minted.
-    uint public numMinted;
+    uint256 public numMinted;
 
-    mapping (uint => mapping(string => mapping(uint => uint))) public CIDDataOrdered;
+    mapping(uint256 => mapping(string => mapping(uint256 => uint256)))
+        public CIDDataOrdered;
 
-    mapping (uint => mapping(string => mapping(string => uint))) public CIDDataPrimary;
+    mapping(uint256 => mapping(string => mapping(string => uint256)))
+        public CIDDataPrimary;
 
-    mapping (uint => mapping(string => mapping(string => uint[]))) public CIDDataActive;
+    mapping(uint256 => mapping(string => mapping(string => uint256[])))
+        public CIDDataActive;
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -59,8 +61,11 @@ contract CidNFT is ERC721 {
 
     error TokenNotMinted();
     error SubprotocolDoesNotExist(string subprotocolName);
-    error ValueTypeNotSupportedForSubprotocol(ValueType valueType, string subprotocolName);
-    error NotAuthorizedForCIDNFT(address caller, uint cidNFTID);
+    error ValueTypeNotSupportedForSubprotocol(
+        ValueType valueType,
+        string subprotocolName
+    );
+    error NotAuthorizedForCIDNFT(address caller, uint256 cidNFTID);
 
     /// @notice Sets the name, symbol, baseURI, and the address of the auction factory
     /// @param _name Name of the NFT
@@ -107,41 +112,73 @@ contract CidNFT is ERC721 {
     /// @param _key Key to set. This value is only relevant for the ValueType PRIMARY or ACTIVE (with strings as keys)
     /// @param _keyID ID (integer key) to set. This value is only relevant for the ValueType ORDERED (with integers as keys)
     /// @param _nftIDToAdd The ID of the NFT to add.
-    function add(uint _cidNftID, string calldata _key, uint _keyID, string calldata _subprotocolName, uint _nftIDToAdd, ValueType _type) external {
-        SubprotocolRegistry.SubprotocolData memory subprotocolData = subprotocolRegistry.getSubprotocol(_subprotocolName);
+    function add(
+        uint256 _cidNftID,
+        string calldata _key,
+        uint256 _keyID,
+        string calldata _subprotocolName,
+        uint256 _nftIDToAdd,
+        ValueType _type
+    ) external {
+        SubprotocolRegistry.SubprotocolData
+            memory subprotocolData = subprotocolRegistry.getSubprotocol(
+                _subprotocolName
+            );
         address subprotocolOwner = subprotocolData.owner;
         if (subprotocolOwner == address(0))
             revert SubprotocolDoesNotExist(_subprotocolName);
-        if (ownerOf[_cidNftID] != msg.sender) // TODO: Should delegated users be allowed to add?
+        if (ownerOf[_cidNftID] != msg.sender)
+            // TODO: Should delegated users be allowed to add?
             revert NotAuthorizedForCIDNFT(msg.sender, _cidNftID);
         // Charge fee (subprotocol & CID fee) if configured
         uint96 subprotocolFee = subprotocolData.fee;
         if (subprotocolFee != 0) {
-            uint cidFee = subprotocolFee * cidFeeBps / 10_000;
-            SafeTransferLib.safeTransferFrom(note, msg.sender, cidFeeWallet, cidFee);
-            SafeTransferLib.safeTransferFrom(note, msg.sender, subprotocolOwner, subprotocolFee - cidFee);
+            uint256 cidFee = (subprotocolFee * cidFeeBps) / 10_000;
+            SafeTransferLib.safeTransferFrom(
+                note,
+                msg.sender,
+                cidFeeWallet,
+                cidFee
+            );
+            SafeTransferLib.safeTransferFrom(
+                note,
+                msg.sender,
+                subprotocolOwner,
+                subprotocolFee - cidFee
+            );
         }
         if (_type == ValueType.ORDERED) {
             if (!subprotocolData.ordered)
-                revert ValueTypeNotSupportedForSubprotocol(_type, _subprotocolName);
-            
+                revert ValueTypeNotSupportedForSubprotocol(
+                    _type,
+                    _subprotocolName
+                );
+
             CIDDataOrdered[_cidNftID][_subprotocolName][_keyID] = _nftIDToAdd; // TODO: Disallow adding 0? Would need to be a disallowed ID in identity subprotocols
         } else if (_type == ValueType.PRIMARY) {
             if (!subprotocolData.primary)
-                revert ValueTypeNotSupportedForSubprotocol(_type, _subprotocolName);
-            
+                revert ValueTypeNotSupportedForSubprotocol(
+                    _type,
+                    _subprotocolName
+                );
+
             CIDDataPrimary[_cidNftID][_subprotocolName][_key] = _nftIDToAdd;
         } else if (_type == ValueType.ACTIVE) {
             if (!subprotocolData.active)
-                revert ValueTypeNotSupportedForSubprotocol(_type, _subprotocolName);
+                revert ValueTypeNotSupportedForSubprotocol(
+                    _type,
+                    _subprotocolName
+                );
 
             if (CIDDataActive[_cidNftID][_subprotocolName][_key].length == 0) {
-                uint[] memory nftIDs = new uint[](1);
+                uint256[] memory nftIDs = new uint256[](1);
                 nftIDs[0] = _nftIDToAdd;
                 CIDDataActive[_cidNftID][_subprotocolName][_key] = nftIDs;
             } else {
                 // In theory, this could introduce duplicates or result in a very large array (causing out of gas)
-                CIDDataActive[_cidNftID][_subprotocolName][_key].push(_nftIDToAdd);
+                CIDDataActive[_cidNftID][_subprotocolName][_key].push(
+                    _nftIDToAdd
+                );
             }
         }
     }
