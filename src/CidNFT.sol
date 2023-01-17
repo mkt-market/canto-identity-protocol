@@ -2,6 +2,8 @@
 pragma solidity >=0.8.0;
 
 import "solmate/tokens/ERC721.sol";
+import "solmate/tokens/ERC20.sol";
+import "solmate/utils/SafeTransferLib.sol";
 import "./SubprotocolRegistry.sol";
 
 /// @title Canto Identity Protocol NFT
@@ -11,7 +13,7 @@ contract CidNFT is ERC721 {
                                  CONSTANTS
     //////////////////////////////////////////////////////////////*/
     /// @notice Fee (in BPS) that is charged for every mint (as a percentage of the mint fee). Fixed at 10%.
-    uint public constant cidFee = 1_000;
+    uint public constant cidFeeBps = 1_000;
 
 
     /*//////////////////////////////////////////////////////////////
@@ -21,8 +23,8 @@ contract CidNFT is ERC721 {
     /// @notice Wallet that receives CID fees
     address public immutable cidFeeWallet;
 
-    /// @notice NOTE contract address
-    address public immutable noteContract;
+    /// @notice Reference to the NOTE TOKEN
+    ERC20 public immutable note;
 
     /// @notice Base URI of the NFT
     string public baseURI;
@@ -77,7 +79,7 @@ contract CidNFT is ERC721 {
     ) ERC721(_name, _symbol) {
         baseURI = _baseURI;
         cidFeeWallet = _cidFeeWallet;
-        noteContract = _noteContract;
+        note = ERC20(_noteContract);
         subprotocolRegistry = SubprotocolRegistry(_subprotocolRegistry);
     }
 
@@ -107,11 +109,18 @@ contract CidNFT is ERC721 {
     /// @param _nftIDToAdd The ID of the NFT to add.
     function add(uint _cidNftID, string calldata _key, uint _keyID, string calldata _subprotocolName, uint _nftIDToAdd, ValueType _type) external {
         SubprotocolRegistry.SubprotocolData memory subprotocolData = subprotocolRegistry.getSubprotocol(_subprotocolName);
-        if (subprotocolData.owner == address(0))
+        address subprotocolOwner = subprotocolData.owner;
+        if (subprotocolOwner == address(0))
             revert SubprotocolDoesNotExist(_subprotocolName);
         if (ownerOf[_cidNftID] != msg.sender) // TODO: Should delegated users be allowed to add?
             revert NotAuthorizedForCIDNFT(msg.sender, _cidNftID);
-        // TODO: Charge fee
+        // Charge fee (subprotocol & CID fee) if configured
+        uint96 subprotocolFee = subprotocolData.fee;
+        if (subprotocolFee != 0) {
+            uint cidFee = subprotocolFee * cidFeeBps / 10_000;
+            SafeTransferLib.safeTransferFrom(note, msg.sender, cidFeeWallet, cidFee);
+            SafeTransferLib.safeTransferFrom(note, msg.sender, subprotocolOwner, subprotocolFee - cidFee);
+        }
         if (_type == ValueType.ORDERED) {
             if (!subprotocolData.ordered)
                 revert ValueTypeNotSupportedForSubprotocol(_type, _subprotocolName);
