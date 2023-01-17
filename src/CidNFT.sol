@@ -58,6 +58,7 @@ contract CidNFT is ERC721 {
     error TokenNotMinted();
     error SubprotocolDoesNotExist(string subprotocolName);
     error ValueTypeNotSupportedForSubprotocol(ValueType valueType, string subprotocolName);
+    error NotAuthorizedForCIDNFT(address caller, uint cidNFTID);
 
     /// @notice Sets the name, symbol, baseURI, and the address of the auction factory
     /// @param _name Name of the NFT
@@ -108,7 +109,9 @@ contract CidNFT is ERC721 {
         SubprotocolRegistry.SubprotocolData memory subprotocolData = subprotocolRegistry.getSubprotocol(_subprotocolName);
         if (subprotocolData.owner == address(0))
             revert SubprotocolDoesNotExist(_subprotocolName);
-        // TODO: Check owner
+        if (ownerOf[_cidNftID] != msg.sender) // TODO: Should delegated users be allowed to add?
+            revert NotAuthorizedForCIDNFT(msg.sender, _cidNftID);
+        // TODO: Charge fee
         if (_type == ValueType.ORDERED) {
             if (!subprotocolData.ordered)
                 revert ValueTypeNotSupportedForSubprotocol(_type, _subprotocolName);
