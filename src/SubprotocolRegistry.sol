@@ -47,8 +47,7 @@ contract SubprotocolRegistry {
         uint96 _fee
     ) external {
         SubprotocolData memory subprotocolData = subprotocols[_name];
-        if (subprotocolData.owner != address(0))
-            revert SubprotocolAlreadyExists(_name, subprotocolData.owner);
+        if (subprotocolData.owner != address(0)) revert SubprotocolAlreadyExists(_name, subprotocolData.owner);
         subprotocolData.owner = msg.sender;
         subprotocolData.fee = _fee;
         subprotocolData.nftAddress = _nftAddress;
@@ -58,11 +57,7 @@ contract SubprotocolRegistry {
         subprotocols[_name] = subprotocolData;
     }
 
-    function getSubprotocol(string calldata _name)
-        external
-        view
-        returns (SubprotocolData memory)
-    {
+    function getSubprotocol(string calldata _name) external view returns (SubprotocolData memory) {
         return subprotocols[_name];
     }
 }
