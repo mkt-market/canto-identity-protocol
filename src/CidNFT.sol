@@ -200,7 +200,7 @@ contract CidNFT is ERC721 {
             uint256 arrayLength = keyData.values.length;
             // Swap only necessary if not already the last element
             if (arrayPosition != arrayLength) {
-                uint befSwapLastNftID = keyData.values[arrayLength - 1];
+                uint256 befSwapLastNftID = keyData.values[arrayLength - 1];
                 keyData.values[arrayPosition - 1] = befSwapLastNftID;
                 keyData.positions[befSwapLastNftID] = arrayPosition;
             }
