@@ -28,7 +28,7 @@ contract SubprotocolRegistry {
     }
 
     /// @notice Mapping (name => data) that contains all registered subprotocols
-    mapping(string => SubprotocolData) public subprotocols;
+    mapping(string => SubprotocolData) private subprotocols;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -54,4 +54,7 @@ contract SubprotocolRegistry {
         subprotocols[_name] = subprotocolData;
     }
 
+    function getSubprotocol(string calldata _name) external view returns (SubprotocolData memory) {
+        return subprotocols[_name];
+    }
 }
