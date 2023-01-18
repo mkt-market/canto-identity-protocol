@@ -64,6 +64,7 @@ contract CidNFT is ERC721 {
     //////////////////////////////////////////////////////////////*/
 
     error TokenNotMinted(uint256 tokenID);
+    error AddCallAfterMintingFailed(uint256 index);
     error SubprotocolDoesNotExist(string subprotocolName);
     error ValueTypeNotSupportedForSubprotocol(ValueType valueType, string subprotocolName);
     error NotAuthorizedForCIDNFT(address caller, uint256 cidNFTID);
@@ -103,10 +104,17 @@ contract CidNFT is ERC721 {
         return string(abi.encodePacked(baseURI, _id, ".json"));
     }
 
+    /// @param _addList An optional list of encoded parameters for add to add subprotocol NFTs directly after minting.
+    /// The parameters should not include the function selector itself, the function select for add is always prepended.
     function mint(bytes[] calldata _addList) external {
         _mint(msg.sender, ++numMinted);
-        if (_addList.length != 0) {
-            // TODO: call add with the provided calldata
+        bytes4 addSelector = this.add.selector;
+        for (uint256 i = 0; i < _addList.length; ++i) {
+            (
+                bool success, /*bytes memory result*/
+
+            ) = address(this).delegatecall(abi.encodePacked(addSelector, _addList[i]));
+            if (!success) revert AddCallAfterMintingFailed(i);
         }
     }
 
@@ -198,8 +206,7 @@ contract CidNFT is ERC721 {
             // TODO: Event
         } else if (_type == ValueType.PRIMARY) {
             uint256 currNFTID = CIDDataPrimary[_cidNftID][_subprotocolName][_key];
-            if (currNFTID == 0)
-                revert PrimaryValueNotSet(_cidNftID, _subprotocolName, _key);
+            if (currNFTID == 0) revert PrimaryValueNotSet(_cidNftID, _subprotocolName, _key);
             delete CIDDataPrimary[_cidNftID][_subprotocolName][_key];
             nftToRemove.safeTransferFrom(address(this), msg.sender, currNFTID);
         } else if (_type == ValueType.ACTIVE) {
