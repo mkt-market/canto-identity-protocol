@@ -52,9 +52,10 @@ contract CidNFT is ERC721 {
     /// @dev Used to assign a new unique ID. The first ID that is assigned is 1, ID 0 is never minted.
     uint256 public numMinted;
 
-    mapping(uint256 => mapping(string => mapping(uint256 => uint256))) public CIDDataOrdered;
+    // TODO: Getters
+    mapping(uint256 => mapping(string => mapping(uint256 => uint256))) internal CIDDataOrdered;
 
-    mapping(uint256 => mapping(string => mapping(string => uint256))) public CIDDataPrimary;
+    mapping(uint256 => mapping(string => mapping(string => uint256))) internal CIDDataPrimary;
 
     mapping(uint256 => mapping(string => mapping(string => IndexedArray))) internal CIDDataActive;
 
@@ -62,10 +63,11 @@ contract CidNFT is ERC721 {
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
 
-    error TokenNotMinted();
+    error TokenNotMinted(uint256 tokenID);
     error SubprotocolDoesNotExist(string subprotocolName);
     error ValueTypeNotSupportedForSubprotocol(ValueType valueType, string subprotocolName);
     error NotAuthorizedForCIDNFT(address caller, uint256 cidNFTID);
+    error NotAuthorizedForSubprotocolNFT(address caller, uint256 subprotocolNFTID);
     error ActiveArrayAlreadyContainsID(uint256 cidNFTID, string subprotocolName, string key, uint256 NFTIDToAdd);
     error OrderedValueNotSet(uint256 cidNFTID, string subprotocolName, uint256 keyID);
     error PrimaryValueNotSet(uint256 cidNFTID, string subprotocolName, string key);
@@ -97,7 +99,7 @@ contract CidNFT is ERC721 {
     function tokenURI(uint256 _id) public view override returns (string memory) {
         if (ownerOf[_id] == address(0))
             // According to ERC721, this revert for non-existing tokens is required
-            revert TokenNotMinted();
+            revert TokenNotMinted(_id);
         return string(abi.encodePacked(baseURI, _id, ".json"));
     }
 
@@ -127,6 +129,9 @@ contract CidNFT is ERC721 {
         if (ownerOf[_cidNftID] != msg.sender)
             // TODO: Should delegated users be allowed to add?
             revert NotAuthorizedForCIDNFT(msg.sender, _cidNftID);
+        // The CID Protocol safeguards the NFTs of subprotocols. Note that these NFTs are usually pointers to other data / NFTs (e.g., to an image NFT for profile pictures)
+        ERC721 nftToAdd = ERC721(subprotocolData.nftAddress);
+        nftToAdd.safeTransferFrom(msg.sender, address(this), _cidNftID);
         // Charge fee (subprotocol & CID fee) if configured
         uint96 subprotocolFee = subprotocolData.fee;
         if (subprotocolFee != 0) {
@@ -177,21 +182,26 @@ contract CidNFT is ERC721 {
         );
         address subprotocolOwner = subprotocolData.owner;
         if (subprotocolOwner == address(0)) revert SubprotocolDoesNotExist(_subprotocolName);
+        ERC721 nftToRemove = ERC721(subprotocolData.nftAddress);
 
         if (ownerOf[_cidNftID] != msg.sender)
             // TODO: Should delegated users be allowed to remove?
             revert NotAuthorizedForCIDNFT(msg.sender, _cidNftID);
         if (_type == ValueType.ORDERED) {
-            // We do not have to check if ordered is supported by the subprotocol. If not, the value will not be set (which is checked below)
-            if (CIDDataOrdered[_cidNftID][_subprotocolName][_keyID] == 0)
-                // This check is technically not necessary, but we include it to only emit an event when a key is truly unset
+            // We do not have to check if ordered is supported by the subprotocol. If not, the value will not be unset (which is checked below)
+            uint256 currNFTID = CIDDataOrdered[_cidNftID][_subprotocolName][_keyID];
+            if (currNFTID == 0)
+                // This check is technically not necessary (because the NFT transfer would fail), but we include it to have more meaningful errors
                 revert OrderedValueNotSet(_cidNftID, _subprotocolName, _keyID);
             delete CIDDataOrdered[_cidNftID][_subprotocolName][_keyID];
+            nftToRemove.safeTransferFrom(address(this), msg.sender, currNFTID);
             // TODO: Event
         } else if (_type == ValueType.PRIMARY) {
-            if (CIDDataPrimary[_cidNftID][_subprotocolName][_key] == 0)
+            uint256 currNFTID = CIDDataPrimary[_cidNftID][_subprotocolName][_key];
+            if (currNFTID == 0)
                 revert PrimaryValueNotSet(_cidNftID, _subprotocolName, _key);
             delete CIDDataPrimary[_cidNftID][_subprotocolName][_key];
+            nftToRemove.safeTransferFrom(address(this), msg.sender, currNFTID);
         } else if (_type == ValueType.ACTIVE) {
             IndexedArray storage keyData = CIDDataActive[_cidNftID][_subprotocolName][_key];
             uint256 arrayPosition = keyData.positions[_nftIDToRemove]; // Index + 1, 0 if non-existant
@@ -206,6 +216,9 @@ contract CidNFT is ERC721 {
             }
             keyData.values.pop();
             keyData.positions[_nftIDToRemove] = 0;
+            nftToRemove.safeTransferFrom(address(this), msg.sender, _nftIDToRemove);
         }
     }
+
+    // TODO: Need to define standard for "liveness" check. IF NFT is safeguarded, user should still be able to interact with it?
 }
