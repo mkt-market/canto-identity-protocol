@@ -80,6 +80,24 @@ contract CidNFT is ERC721 {
         uint256 subprotocolNFTID,
         uint256 arrayIndex
     );
+    event OrderedDataRemoved(
+        uint256 indexed cidNFTID,
+        string indexed subprotocolName,
+        uint256 indexed keyID,
+        uint256 subprotocolNFTID
+    );
+    event PrimaryDataRemoved(
+        uint256 indexed cidNFTID,
+        string indexed subprotocolName,
+        string indexed key,
+        uint256 subprotocolNFTID
+    );
+    event ActiveDataRemoved(
+        uint256 indexed cidNFTID,
+        string indexed subprotocolName,
+        string indexed key,
+        uint256 subprotocolNFTID
+    );
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -171,12 +189,10 @@ contract CidNFT is ERC721 {
         }
         if (_type == ValueType.ORDERED) {
             if (!subprotocolData.ordered) revert ValueTypeNotSupportedForSubprotocol(_type, _subprotocolName);
-
             CIDDataOrdered[_cidNFTID][_subprotocolName][_keyID] = _nftIDToAdd; // TODO: Disallow adding 0? Would need to be a disallowed ID in identity subprotocols
             emit OrderedDataAdded(_cidNFTID, _subprotocolName, _keyID, _nftIDToAdd);
         } else if (_type == ValueType.PRIMARY) {
             if (!subprotocolData.primary) revert ValueTypeNotSupportedForSubprotocol(_type, _subprotocolName);
-
             CIDDataPrimary[_cidNFTID][_subprotocolName][_key] = _nftIDToAdd;
             emit PrimaryDataAdded(_cidNFTID, _subprotocolName, _key, _nftIDToAdd);
         } else if (_type == ValueType.ACTIVE) {
@@ -195,7 +211,7 @@ contract CidNFT is ERC721 {
                 keyData.values.push(_nftIDToAdd);
                 keyData.positions[_nftIDToAdd] = lengthBeforeAddition + 1;
             }
-            emit ActiveDataAdded(_nftIDToAdd, _subprotocolName, _key, _nftIDToAdd, lengthBeforeAddition);
+            emit ActiveDataAdded(_cidNFTID, _subprotocolName, _key, _nftIDToAdd, lengthBeforeAddition);
         }
     }
 
@@ -228,12 +244,13 @@ contract CidNFT is ERC721 {
                 revert OrderedValueNotSet(_cidNFTID, _subprotocolName, _keyID);
             delete CIDDataOrdered[_cidNFTID][_subprotocolName][_keyID];
             nftToRemove.safeTransferFrom(address(this), msg.sender, currNFTID);
-            // TODO: Event
+            emit OrderedDataRemoved(_cidNFTID, _subprotocolName, _keyID, _nftIDToRemove);
         } else if (_type == ValueType.PRIMARY) {
             uint256 currNFTID = CIDDataPrimary[_cidNFTID][_subprotocolName][_key];
             if (currNFTID == 0) revert PrimaryValueNotSet(_cidNFTID, _subprotocolName, _key);
             delete CIDDataPrimary[_cidNFTID][_subprotocolName][_key];
             nftToRemove.safeTransferFrom(address(this), msg.sender, currNFTID);
+            emit PrimaryDataRemoved(_cidNFTID, _subprotocolName, _key, _nftIDToRemove);
         } else if (_type == ValueType.ACTIVE) {
             IndexedArray storage keyData = CIDDataActive[_cidNFTID][_subprotocolName][_key];
             uint256 arrayPosition = keyData.positions[_nftIDToRemove]; // Index + 1, 0 if non-existant
@@ -249,6 +266,7 @@ contract CidNFT is ERC721 {
             keyData.values.pop();
             keyData.positions[_nftIDToRemove] = 0;
             nftToRemove.safeTransferFrom(address(this), msg.sender, _nftIDToRemove);
+            emit ActiveDataRemoved(_cidNFTID, _subprotocolName, _key, _nftIDToRemove);
         }
     }
 
