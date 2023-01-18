@@ -29,7 +29,7 @@ contract AddressRegistry {
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
-    error NftNotOwnedByUser(uint256 cidNFTID, address caller);
+    error NFTNotOwnedByUser(uint256 cidNFTID, address caller);
     error NoCIDNFTRegisteredForUser(address caller);
 
     constructor(address _cidNFT) {
@@ -39,7 +39,7 @@ contract AddressRegistry {
     function register(uint256 _cidNFTID) external {
         if (ERC721(cidNFT).ownerOf(_cidNFTID) != msg.sender)
             // ownerOf reverts if non-existing ID is provided
-            revert NftNotOwnedByUser(_cidNFTID, msg.sender);
+            revert NFTNotOwnedByUser(_cidNFTID, msg.sender);
         cidNFTs[msg.sender] = _cidNFTID;
         emit CIDNFTAdded(msg.sender, _cidNFTID);
     }
