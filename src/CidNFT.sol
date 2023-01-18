@@ -59,6 +59,29 @@ contract CidNFT is ERC721 {
     mapping(uint256 => mapping(string => mapping(string => IndexedArray))) internal CIDDataActive;
 
     /*//////////////////////////////////////////////////////////////
+                                 EVENTS
+    //////////////////////////////////////////////////////////////*/
+    event OrderedDataAdded(
+        uint256 indexed cidNFTID,
+        string indexed subprotocolName,
+        uint256 indexed keyID,
+        uint256 subprotocolNFTID
+    );
+    event PrimaryDataAdded(
+        uint256 indexed cidNFTID,
+        string indexed subprotocolName,
+        string indexed key,
+        uint256 subprotocolNFTID
+    );
+    event ActiveDataAdded(
+        uint256 indexed cidNFTID,
+        string indexed subprotocolName,
+        string indexed key,
+        uint256 subprotocolNFTID,
+        uint256 arrayIndex
+    );
+
+    /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
 
@@ -150,10 +173,12 @@ contract CidNFT is ERC721 {
             if (!subprotocolData.ordered) revert ValueTypeNotSupportedForSubprotocol(_type, _subprotocolName);
 
             CIDDataOrdered[_cidNFTID][_subprotocolName][_keyID] = _nftIDToAdd; // TODO: Disallow adding 0? Would need to be a disallowed ID in identity subprotocols
+            emit OrderedDataAdded(_cidNFTID, _subprotocolName, _keyID, _nftIDToAdd);
         } else if (_type == ValueType.PRIMARY) {
             if (!subprotocolData.primary) revert ValueTypeNotSupportedForSubprotocol(_type, _subprotocolName);
 
             CIDDataPrimary[_cidNFTID][_subprotocolName][_key] = _nftIDToAdd;
+            emit PrimaryDataAdded(_cidNFTID, _subprotocolName, _key, _nftIDToAdd);
         } else if (_type == ValueType.ACTIVE) {
             if (!subprotocolData.active) revert ValueTypeNotSupportedForSubprotocol(_type, _subprotocolName);
             IndexedArray storage keyData = CIDDataActive[_cidNFTID][_subprotocolName][_key];
@@ -161,7 +186,7 @@ contract CidNFT is ERC721 {
             if (lengthBeforeAddition == 0) {
                 uint256[] memory nftIDsToAdd = new uint256[](1);
                 nftIDsToAdd[0] = _nftIDToAdd;
-                keyData.values = nftIDsToAdd; // TODO: Emit events
+                keyData.values = nftIDsToAdd;
                 keyData.positions[_nftIDToAdd] = 1; // Array index + 1
             } else {
                 // Check for duplicates
@@ -170,6 +195,7 @@ contract CidNFT is ERC721 {
                 keyData.values.push(_nftIDToAdd);
                 keyData.positions[_nftIDToAdd] = lengthBeforeAddition + 1;
             }
+            emit ActiveDataAdded(_nftIDToAdd, _subprotocolName, _key, _nftIDToAdd, lengthBeforeAddition);
         }
     }
 
@@ -259,5 +285,5 @@ contract CidNFT is ERC721 {
         nftIncluded = CIDDataActive[_cidNFTID][_subprotocolName][_key].positions[_nftIDToCheck] != 0;
     }
 
-    // TODO: Need to define standard for "liveness" check. IF NFT is safeguarded, user should still be able to interact with it?
+    // TODO: Need to define standard for "liveness" check. If NFT is safeguarded, user should still be able to interact with it?
 }
