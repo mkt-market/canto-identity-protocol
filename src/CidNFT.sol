@@ -52,7 +52,6 @@ contract CidNFT is ERC721 {
     /// @dev Used to assign a new unique ID. The first ID that is assigned is 1, ID 0 is never minted.
     uint256 public numMinted;
 
-    // TODO: Getters
     mapping(uint256 => mapping(string => mapping(uint256 => uint256))) internal CIDDataOrdered;
 
     mapping(uint256 => mapping(string => mapping(string => uint256))) internal CIDDataPrimary;
@@ -123,9 +122,9 @@ contract CidNFT is ERC721 {
     /// @param _nftIDToAdd The ID of the NFT to add.
     function add(
         uint256 _cidNFTID,
+        string calldata _subprotocolName,
         string calldata _key,
         uint256 _keyID,
-        string calldata _subprotocolName,
         uint256 _nftIDToAdd,
         ValueType _type
     ) external {
@@ -179,9 +178,9 @@ contract CidNFT is ERC721 {
     /// @param _nftIDToRemove The ID of the NFT to remove. Only needed for type ACTIVE, as the key is sufficent, otherwise
     function remove(
         uint256 _cidNFTID,
+        string calldata _subprotocolName,
         string calldata _key,
         uint256 _keyID,
-        string calldata _subprotocolName,
         uint256 _nftIDToRemove,
         ValueType _type
     ) external {
@@ -225,6 +224,39 @@ contract CidNFT is ERC721 {
             keyData.positions[_nftIDToRemove] = 0;
             nftToRemove.safeTransferFrom(address(this), msg.sender, _nftIDToRemove);
         }
+    }
+
+    function getOrderedData(
+        uint256 _cidNFTID,
+        string calldata _subprotocolName,
+        uint256 _keyID
+    ) external view returns (uint256 subprotocolNFTID) {
+        subprotocolNFTID = CIDDataOrdered[_cidNFTID][_subprotocolName][_keyID];
+    }
+
+    function getPrimaryData(
+        uint256 _cidNFTID,
+        string calldata _subprotocolName,
+        string calldata _key
+    ) external view returns (uint256 subprotocolNFTID) {
+        subprotocolNFTID = CIDDataPrimary[_cidNFTID][_subprotocolName][_key];
+    }
+
+    function getActiveData(
+        uint256 _cidNFTID,
+        string calldata _subprotocolName,
+        string calldata _key
+    ) external view returns (uint256[] memory subprotocolNFTIDs) {
+        subprotocolNFTIDs = CIDDataActive[_cidNFTID][_subprotocolName][_key].values;
+    }
+
+    function activeDataIncludesNFT(
+        uint256 _cidNFTID,
+        string calldata _subprotocolName,
+        string calldata _key,
+        uint256 _nftIDToCheck
+    ) external view returns (bool nftIncluded) {
+        nftIncluded = CIDDataActive[_cidNFTID][_subprotocolName][_key].positions[_nftIDToCheck] != 0;
     }
 
     // TODO: Need to define standard for "liveness" check. IF NFT is safeguarded, user should still be able to interact with it?
