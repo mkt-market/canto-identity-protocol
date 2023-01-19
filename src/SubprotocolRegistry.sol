@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity >=0.8.0;
 
+import "solmate/tokens/ERC721.sol";
+import "./CidSubprotocolNFT.sol";
+
 /// @title Subprotocol Registry
 /// @notice Enables registration of new subprotocols
 contract SubprotocolRegistry {
@@ -43,6 +46,7 @@ contract SubprotocolRegistry {
     //////////////////////////////////////////////////////////////*/
     error SubprotocolAlreadyExists(string name, address owner);
     error NoTypeSpecified(string name);
+    error NotASubprotocolNFT(address nftAddress);
 
     /// @notice Register a new subprotocol
     /// @dev The options ordered, primary, active are not mutually exclusive. In practice, only one will be set for most subprotocols,
@@ -66,7 +70,9 @@ contract SubprotocolRegistry {
         if (subprotocolData.owner != address(0)) revert SubprotocolAlreadyExists(_name, subprotocolData.owner);
         subprotocolData.owner = msg.sender;
         subprotocolData.fee = _fee;
-        subprotocolData.nftAddress = _nftAddress; // TODO: Verify that is subprotocol NFT?
+        if (!ERC721(_nftAddress).supportsInterface(type(CidSubprotocolNFT).interfaceId))
+            revert NotASubprotocolNFT(_nftAddress);
+        subprotocolData.nftAddress = _nftAddress;
         subprotocolData.ordered = _ordered;
         subprotocolData.primary = _primary;
         subprotocolData.active = _active;
