@@ -1,6 +1,6 @@
 # Canto Identity Protocol (CID)
 
-Canto Identity Protocol provides identity NFTs that associate different subprotocol NFTs (the identities) with one CID NFT, which in turn belongs to a person / wallet. The core protocol consists of three parts:
+Canto Identity Protocol provides identity NFTs that associate different subprotocol NFTs with one CID NFT, which in turn is associated with a person / address. The core protocol consists of three parts:
 
 ## CID NFT
 Everyone can mint a CID NFT by using the `mint` function. Then, subprotocol NFTs can be associated with this NFT using the `add` function. Depending on how the subprotocol was configured when it was added to the registry, the association of the CID NFT with the subprotocol NFT looks different:
