@@ -12,7 +12,7 @@ contract CidNFT is ERC721 {
     /*//////////////////////////////////////////////////////////////
                                  CONSTANTS
     //////////////////////////////////////////////////////////////*/
-    
+
     /// @notice Fee (in BPS) that is charged for every mint (as a percentage of the mint fee). Fixed at 10%.
     uint256 public constant cidFeeBps = 1_000;
 
@@ -75,11 +75,7 @@ contract CidNFT is ERC721 {
         uint256 indexed key,
         uint256 subprotocolNFTID
     );
-    event PrimaryDataAdded(
-        uint256 indexed cidNFTID,
-        string indexed subprotocolName,
-        uint256 subprotocolNFTID
-    );
+    event PrimaryDataAdded(uint256 indexed cidNFTID, string indexed subprotocolName, uint256 subprotocolNFTID);
     event ActiveDataAdded(
         uint256 indexed cidNFTID,
         string indexed subprotocolName,
@@ -92,16 +88,8 @@ contract CidNFT is ERC721 {
         uint256 indexed key,
         uint256 subprotocolNFTID
     );
-    event PrimaryDataRemoved(
-        uint256 indexed cidNFTID,
-        string indexed subprotocolName,
-        uint256 subprotocolNFTID
-    );
-    event ActiveDataRemoved(
-        uint256 indexed cidNFTID,
-        string indexed subprotocolName,
-        uint256 subprotocolNFTID
-    );
+    event PrimaryDataRemoved(uint256 indexed cidNFTID, string indexed subprotocolName, uint256 subprotocolNFTID);
+    event ActiveDataRemoved(uint256 indexed cidNFTID, string indexed subprotocolName, uint256 subprotocolNFTID);
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
@@ -166,9 +154,10 @@ contract CidNFT is ERC721 {
 
     /// @notice Add a new entry for the given subprotocol to the provided CID NFT
     /// @param _cidNFTID ID of the CID NFT to add the data to
+    /// @param _subprotocolName Name of the subprotocol where the data will be added. Has to exist.
     /// @param _key Key to set. This value is only relevant for the ValueType ORDERED (where a mapping int => nft ID is stored)
     /// @param _nftIDToAdd The ID of the NFT to add
-    /// @param _type value type (see ValueType struct) to add this data to
+    /// @param _type Value type (see ValueType struct) to add this data to
     function add(
         uint256 _cidNFTID,
         string calldata _subprotocolName,
@@ -222,8 +211,12 @@ contract CidNFT is ERC721 {
         }
     }
 
+    /// @notice Remove / unset a key for the given CID NFT and subprotocol
+    /// @param _cidNFTID ID of the CID NFT to remove the data from
+    /// @param _subprotocolName Name of the subprotocol where the data will be removed. Has to exist.
     /// @param _key Key to unset. This value is only relevant for the ValueType ORDERED
     /// @param _nftIDToRemove The ID of the NFT to remove. Only needed for the ValueType ACTIVE
+    /// @param _type Value type (see ValueType struct) to remove this data from
     function remove(
         uint256 _cidNFTID,
         string calldata _subprotocolName,
@@ -259,8 +252,7 @@ contract CidNFT is ERC721 {
         } else if (_type == ValueType.ACTIVE) {
             IndexedArray storage activeData = CIDData[_cidNFTID][_subprotocolName].active;
             uint256 arrayPosition = activeData.positions[_nftIDToRemove]; // Index + 1, 0 if non-existant
-            if (arrayPosition == 0)
-                revert ActiveArrayDoesNotContainID(_cidNFTID, _subprotocolName, _nftIDToRemove);
+            if (arrayPosition == 0) revert ActiveArrayDoesNotContainID(_cidNFTID, _subprotocolName, _nftIDToRemove);
             uint256 arrayLength = activeData.values.length;
             // Swap only necessary if not already the last element
             if (arrayPosition != arrayLength) {
@@ -275,6 +267,11 @@ contract CidNFT is ERC721 {
         }
     }
 
+    /// @notice Get the ordered data that is associated with a CID NFT / Subprotocol
+    /// @param _cidNFTID ID of the CID NFT to query
+    /// @param _subprotocolName Name of the subprotocol to query
+    /// @param _key Key to query
+    /// @return subprotocolNFTID The ID of the NFT at the queried key. 0 if it does not exist
     function getOrderedData(
         uint256 _cidNFTID,
         string calldata _subprotocolName,
@@ -283,20 +280,34 @@ contract CidNFT is ERC721 {
         subprotocolNFTID = CIDData[_cidNFTID][_subprotocolName].ordered[_key];
     }
 
-    function getPrimaryData(
-        uint256 _cidNFTID,
-        string calldata _subprotocolName
-    ) external view returns (uint256 subprotocolNFTID) {
+    /// @notice Get the primary data that is associated with a CID NFT / Subprotocol
+    /// @param _cidNFTID ID of the CID NFT to query
+    /// @param _subprotocolName Name of the subprotocol to query
+    /// @return subprotocolNFTID The ID of the primary NFT at the queried subprotocl / CID NFT. 0 if it does not exist
+    function getPrimaryData(uint256 _cidNFTID, string calldata _subprotocolName)
+        external
+        view
+        returns (uint256 subprotocolNFTID)
+    {
         subprotocolNFTID = CIDData[_cidNFTID][_subprotocolName].primary;
     }
 
-    function getActiveData(
-        uint256 _cidNFTID,
-        string calldata _subprotocolName
-    ) external view returns (uint256[] memory subprotocolNFTIDs) {
+    /// @notice Get the active data list that is associated with a CID NFT / Subprotocol
+    /// @param _cidNFTID ID of the CID NFT to query
+    /// @param _subprotocolName Name of the subprotocol to query
+    /// @return subprotocolNFTIDs The ID of the primary NFT at the queried subprotocl / CID NFT. 0 if it does not exist
+    function getActiveData(uint256 _cidNFTID, string calldata _subprotocolName)
+        external
+        view
+        returns (uint256[] memory subprotocolNFTIDs)
+    {
         subprotocolNFTIDs = CIDData[_cidNFTID][_subprotocolName].active.values;
     }
 
+    /// @notice Check if a provided NFT ID is included in the active data list that is associated with a CID NFT / Subprotocol
+    /// @param _cidNFTID ID of the CID NFT to query
+    /// @param _subprotocolName Name of the subprotocol to query
+    /// @return nftIncluded True if the NFT ID is in the list
     function activeDataIncludesNFT(
         uint256 _cidNFTID,
         string calldata _subprotocolName,
