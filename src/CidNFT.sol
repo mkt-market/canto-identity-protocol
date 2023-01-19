@@ -12,6 +12,7 @@ contract CidNFT is ERC721 {
     /*//////////////////////////////////////////////////////////////
                                  CONSTANTS
     //////////////////////////////////////////////////////////////*/
+    
     /// @notice Fee (in BPS) that is charged for every mint (as a percentage of the mint fee). Fixed at 10%.
     uint256 public constant cidFeeBps = 1_000;
 
@@ -41,6 +42,16 @@ contract CidNFT is ERC721 {
         mapping(uint256 => uint256) positions;
     }
 
+    /// @notice Data that is associated with a CID NFT -> subprotocol combination
+    struct SubprotocolData {
+        /// @notice Mapping for ordered type
+        mapping(uint256 => uint256) ordered;
+        /// @notice Value for primary type
+        uint256 primary;
+        /// @notice List for active type
+        IndexedArray active;
+    }
+
     /// @notice The different types of value that can be added for a given key
     enum ValueType {
         ORDERED,
@@ -52,11 +63,8 @@ contract CidNFT is ERC721 {
     /// @dev Used to assign a new unique ID. The first ID that is assigned is 1, ID 0 is never minted.
     uint256 public numMinted;
 
-    mapping(uint256 => mapping(string => mapping(uint256 => uint256))) internal CIDDataOrdered;
-
-    mapping(uint256 => mapping(string => mapping(string => uint256))) internal CIDDataPrimary;
-
-    mapping(uint256 => mapping(string => mapping(string => IndexedArray))) internal CIDDataActive;
+    /// @notice Stores the references to subprotocol NFTs. Mapping nftID => subprotocol name => subprotocol data
+    mapping(uint256 => mapping(string => SubprotocolData)) internal CIDData;
 
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
@@ -64,62 +72,57 @@ contract CidNFT is ERC721 {
     event OrderedDataAdded(
         uint256 indexed cidNFTID,
         string indexed subprotocolName,
-        uint256 indexed keyID,
+        uint256 indexed key,
         uint256 subprotocolNFTID
     );
     event PrimaryDataAdded(
         uint256 indexed cidNFTID,
         string indexed subprotocolName,
-        string indexed key,
         uint256 subprotocolNFTID
     );
     event ActiveDataAdded(
         uint256 indexed cidNFTID,
         string indexed subprotocolName,
-        string indexed key,
         uint256 subprotocolNFTID,
         uint256 arrayIndex
     );
     event OrderedDataRemoved(
         uint256 indexed cidNFTID,
         string indexed subprotocolName,
-        uint256 indexed keyID,
+        uint256 indexed key,
         uint256 subprotocolNFTID
     );
     event PrimaryDataRemoved(
         uint256 indexed cidNFTID,
         string indexed subprotocolName,
-        string indexed key,
         uint256 subprotocolNFTID
     );
     event ActiveDataRemoved(
         uint256 indexed cidNFTID,
         string indexed subprotocolName,
-        string indexed key,
         uint256 subprotocolNFTID
     );
 
     /*//////////////////////////////////////////////////////////////
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
-
     error TokenNotMinted(uint256 tokenID);
     error AddCallAfterMintingFailed(uint256 index);
     error SubprotocolDoesNotExist(string subprotocolName);
     error ValueTypeNotSupportedForSubprotocol(ValueType valueType, string subprotocolName);
     error NotAuthorizedForCIDNFT(address caller, uint256 cidNFTID);
     error NotAuthorizedForSubprotocolNFT(address caller, uint256 subprotocolNFTID);
-    error ActiveArrayAlreadyContainsID(uint256 cidNFTID, string subprotocolName, string key, uint256 NFTIDToAdd);
-    error OrderedValueNotSet(uint256 cidNFTID, string subprotocolName, uint256 keyID);
-    error PrimaryValueNotSet(uint256 cidNFTID, string subprotocolName, string key);
-    error ActiveArrayDoesNotContainID(uint256 cidNFTID, string subprotocolName, string key, uint256 NFTIDToRemove);
+    error ActiveArrayAlreadyContainsID(uint256 cidNFTID, string subprotocolName, uint256 NFTIDToAdd);
+    error OrderedValueNotSet(uint256 cidNFTID, string subprotocolName, uint256 key);
+    error PrimaryValueNotSet(uint256 cidNFTID, string subprotocolName);
+    error ActiveArrayDoesNotContainID(uint256 cidNFTID, string subprotocolName, uint256 NFTIDToRemove);
 
     /// @notice Sets the name, symbol, baseURI, and the address of the auction factory
     /// @param _name Name of the NFT
     /// @param _symbol Symbol of the NFT
     /// @param _baseURI NFT base URI. {id}.json is appended to this URI
     /// @param _cidFeeWallet Address of the wallet that receives the fees
-    /// @param _noteContract Address of the NOTE contract
+    /// @param _noteContract Address of the $NOTE contract
     /// @param _subprotocolRegistry Address of the subprotocol registry
     constructor(
         string memory _name,
@@ -137,6 +140,7 @@ contract CidNFT is ERC721 {
 
     /// @notice Get the token URI for the provided ID
     /// @param _id ID to retrieve the URI for
+    /// @return tokenURI The URI of the queried token (path to a JSON file)
     function tokenURI(uint256 _id) public view override returns (string memory) {
         if (ownerOf[_id] == address(0))
             // According to ERC721, this revert for non-existing tokens is required
@@ -144,10 +148,12 @@ contract CidNFT is ERC721 {
         return string(abi.encodePacked(baseURI, _id, ".json"));
     }
 
+    /// @notice Mint a new CID NFT
+    /// @dev An address can mint multiple CID NFTs, but it can only set one as associated with it in the AddressRegistry
     /// @param _addList An optional list of encoded parameters for add to add subprotocol NFTs directly after minting.
     /// The parameters should not include the function selector itself, the function select for add is always prepended.
     function mint(bytes[] calldata _addList) external {
-        _mint(msg.sender, ++numMinted);
+        _mint(msg.sender, ++numMinted); // We do not use _safeMint here on purpose. If a contract calls this method, he expects to get an NFT back
         bytes4 addSelector = this.add.selector;
         for (uint256 i = 0; i < _addList.length; ++i) {
             (
@@ -158,14 +164,15 @@ contract CidNFT is ERC721 {
         }
     }
 
-    /// @param _key Key to set. This value is only relevant for the ValueType PRIMARY or ACTIVE (with strings as keys)
-    /// @param _keyID ID (integer key) to set. This value is only relevant for the ValueType ORDERED (with integers as keys)
-    /// @param _nftIDToAdd The ID of the NFT to add.
+    /// @notice Add a new entry for the given subprotocol to the provided CID NFT
+    /// @param _cidNFTID ID of the CID NFT to add the data to
+    /// @param _key Key to set. This value is only relevant for the ValueType ORDERED (where a mapping int => nft ID is stored)
+    /// @param _nftIDToAdd The ID of the NFT to add
+    /// @param _type value type (see ValueType struct) to add this data to
     function add(
         uint256 _cidNFTID,
         string calldata _subprotocolName,
-        string calldata _key,
-        uint256 _keyID,
+        uint256 _key,
         uint256 _nftIDToAdd,
         ValueType _type
     ) external {
@@ -189,40 +196,38 @@ contract CidNFT is ERC721 {
         }
         if (_type == ValueType.ORDERED) {
             if (!subprotocolData.ordered) revert ValueTypeNotSupportedForSubprotocol(_type, _subprotocolName);
-            CIDDataOrdered[_cidNFTID][_subprotocolName][_keyID] = _nftIDToAdd; // TODO: Disallow adding 0? Would need to be a disallowed ID in identity subprotocols
-            emit OrderedDataAdded(_cidNFTID, _subprotocolName, _keyID, _nftIDToAdd);
+            CIDData[_cidNFTID][_subprotocolName].ordered[_key] = _nftIDToAdd; // TODO: Disallow adding 0? Would need to be a disallowed ID in identity subprotocols
+            emit OrderedDataAdded(_cidNFTID, _subprotocolName, _key, _nftIDToAdd);
         } else if (_type == ValueType.PRIMARY) {
             if (!subprotocolData.primary) revert ValueTypeNotSupportedForSubprotocol(_type, _subprotocolName);
-            CIDDataPrimary[_cidNFTID][_subprotocolName][_key] = _nftIDToAdd;
-            emit PrimaryDataAdded(_cidNFTID, _subprotocolName, _key, _nftIDToAdd);
+            CIDData[_cidNFTID][_subprotocolName].primary = _nftIDToAdd;
+            emit PrimaryDataAdded(_cidNFTID, _subprotocolName, _nftIDToAdd);
         } else if (_type == ValueType.ACTIVE) {
             if (!subprotocolData.active) revert ValueTypeNotSupportedForSubprotocol(_type, _subprotocolName);
-            IndexedArray storage keyData = CIDDataActive[_cidNFTID][_subprotocolName][_key];
-            uint256 lengthBeforeAddition = keyData.values.length;
+            IndexedArray storage activeData = CIDData[_cidNFTID][_subprotocolName].active;
+            uint256 lengthBeforeAddition = activeData.values.length;
             if (lengthBeforeAddition == 0) {
                 uint256[] memory nftIDsToAdd = new uint256[](1);
                 nftIDsToAdd[0] = _nftIDToAdd;
-                keyData.values = nftIDsToAdd;
-                keyData.positions[_nftIDToAdd] = 1; // Array index + 1
+                activeData.values = nftIDsToAdd;
+                activeData.positions[_nftIDToAdd] = 1; // Array index + 1
             } else {
                 // Check for duplicates
-                if (keyData.positions[_nftIDToAdd] != 0)
-                    revert ActiveArrayAlreadyContainsID(_cidNFTID, _subprotocolName, _key, _nftIDToAdd);
-                keyData.values.push(_nftIDToAdd);
-                keyData.positions[_nftIDToAdd] = lengthBeforeAddition + 1;
+                if (activeData.positions[_nftIDToAdd] != 0)
+                    revert ActiveArrayAlreadyContainsID(_cidNFTID, _subprotocolName, _nftIDToAdd);
+                activeData.values.push(_nftIDToAdd);
+                activeData.positions[_nftIDToAdd] = lengthBeforeAddition + 1;
             }
-            emit ActiveDataAdded(_cidNFTID, _subprotocolName, _key, _nftIDToAdd, lengthBeforeAddition);
+            emit ActiveDataAdded(_cidNFTID, _subprotocolName, _nftIDToAdd, lengthBeforeAddition);
         }
     }
 
-    /// @param _key Key to set. This value is only relevant for the ValueType PRIMARY or ACTIVE (with strings as keys)
-    /// @param _keyID ID (integer key) to set. This value is only relevant for the ValueType ORDERED (with integers as keys)
-    /// @param _nftIDToRemove The ID of the NFT to remove. Only needed for type ACTIVE, as the key is sufficent, otherwise
+    /// @param _key Key to unset. This value is only relevant for the ValueType ORDERED
+    /// @param _nftIDToRemove The ID of the NFT to remove. Only needed for the ValueType ACTIVE
     function remove(
         uint256 _cidNFTID,
         string calldata _subprotocolName,
-        string calldata _key,
-        uint256 _keyID,
+        uint256 _key,
         uint256 _nftIDToRemove,
         ValueType _type
     ) external {
@@ -238,69 +243,66 @@ contract CidNFT is ERC721 {
             revert NotAuthorizedForCIDNFT(msg.sender, _cidNFTID);
         if (_type == ValueType.ORDERED) {
             // We do not have to check if ordered is supported by the subprotocol. If not, the value will not be unset (which is checked below)
-            uint256 currNFTID = CIDDataOrdered[_cidNFTID][_subprotocolName][_keyID];
+            uint256 currNFTID = CIDData[_cidNFTID][_subprotocolName].ordered[_key];
             if (currNFTID == 0)
                 // This check is technically not necessary (because the NFT transfer would fail), but we include it to have more meaningful errors
-                revert OrderedValueNotSet(_cidNFTID, _subprotocolName, _keyID);
-            delete CIDDataOrdered[_cidNFTID][_subprotocolName][_keyID];
+                revert OrderedValueNotSet(_cidNFTID, _subprotocolName, _key);
+            delete CIDData[_cidNFTID][_subprotocolName].ordered[_key];
             nftToRemove.safeTransferFrom(address(this), msg.sender, currNFTID);
-            emit OrderedDataRemoved(_cidNFTID, _subprotocolName, _keyID, _nftIDToRemove);
+            emit OrderedDataRemoved(_cidNFTID, _subprotocolName, _key, _nftIDToRemove);
         } else if (_type == ValueType.PRIMARY) {
-            uint256 currNFTID = CIDDataPrimary[_cidNFTID][_subprotocolName][_key];
-            if (currNFTID == 0) revert PrimaryValueNotSet(_cidNFTID, _subprotocolName, _key);
-            delete CIDDataPrimary[_cidNFTID][_subprotocolName][_key];
+            uint256 currNFTID = CIDData[_cidNFTID][_subprotocolName].primary;
+            if (currNFTID == 0) revert PrimaryValueNotSet(_cidNFTID, _subprotocolName);
+            delete CIDData[_cidNFTID][_subprotocolName].primary;
             nftToRemove.safeTransferFrom(address(this), msg.sender, currNFTID);
-            emit PrimaryDataRemoved(_cidNFTID, _subprotocolName, _key, _nftIDToRemove);
+            emit PrimaryDataRemoved(_cidNFTID, _subprotocolName, _nftIDToRemove);
         } else if (_type == ValueType.ACTIVE) {
-            IndexedArray storage keyData = CIDDataActive[_cidNFTID][_subprotocolName][_key];
-            uint256 arrayPosition = keyData.positions[_nftIDToRemove]; // Index + 1, 0 if non-existant
+            IndexedArray storage activeData = CIDData[_cidNFTID][_subprotocolName].active;
+            uint256 arrayPosition = activeData.positions[_nftIDToRemove]; // Index + 1, 0 if non-existant
             if (arrayPosition == 0)
-                revert ActiveArrayDoesNotContainID(_cidNFTID, _subprotocolName, _key, _nftIDToRemove);
-            uint256 arrayLength = keyData.values.length;
+                revert ActiveArrayDoesNotContainID(_cidNFTID, _subprotocolName, _nftIDToRemove);
+            uint256 arrayLength = activeData.values.length;
             // Swap only necessary if not already the last element
             if (arrayPosition != arrayLength) {
-                uint256 befSwapLastNFTID = keyData.values[arrayLength - 1];
-                keyData.values[arrayPosition - 1] = befSwapLastNFTID;
-                keyData.positions[befSwapLastNFTID] = arrayPosition;
+                uint256 befSwapLastNFTID = activeData.values[arrayLength - 1];
+                activeData.values[arrayPosition - 1] = befSwapLastNFTID;
+                activeData.positions[befSwapLastNFTID] = arrayPosition;
             }
-            keyData.values.pop();
-            keyData.positions[_nftIDToRemove] = 0;
+            activeData.values.pop();
+            activeData.positions[_nftIDToRemove] = 0;
             nftToRemove.safeTransferFrom(address(this), msg.sender, _nftIDToRemove);
-            emit ActiveDataRemoved(_cidNFTID, _subprotocolName, _key, _nftIDToRemove);
+            emit ActiveDataRemoved(_cidNFTID, _subprotocolName, _nftIDToRemove);
         }
     }
 
     function getOrderedData(
         uint256 _cidNFTID,
         string calldata _subprotocolName,
-        uint256 _keyID
+        uint256 _key
     ) external view returns (uint256 subprotocolNFTID) {
-        subprotocolNFTID = CIDDataOrdered[_cidNFTID][_subprotocolName][_keyID];
+        subprotocolNFTID = CIDData[_cidNFTID][_subprotocolName].ordered[_key];
     }
 
     function getPrimaryData(
         uint256 _cidNFTID,
-        string calldata _subprotocolName,
-        string calldata _key
+        string calldata _subprotocolName
     ) external view returns (uint256 subprotocolNFTID) {
-        subprotocolNFTID = CIDDataPrimary[_cidNFTID][_subprotocolName][_key];
+        subprotocolNFTID = CIDData[_cidNFTID][_subprotocolName].primary;
     }
 
     function getActiveData(
         uint256 _cidNFTID,
-        string calldata _subprotocolName,
-        string calldata _key
+        string calldata _subprotocolName
     ) external view returns (uint256[] memory subprotocolNFTIDs) {
-        subprotocolNFTIDs = CIDDataActive[_cidNFTID][_subprotocolName][_key].values;
+        subprotocolNFTIDs = CIDData[_cidNFTID][_subprotocolName].active.values;
     }
 
     function activeDataIncludesNFT(
         uint256 _cidNFTID,
         string calldata _subprotocolName,
-        string calldata _key,
         uint256 _nftIDToCheck
     ) external view returns (bool nftIncluded) {
-        nftIncluded = CIDDataActive[_cidNFTID][_subprotocolName][_key].positions[_nftIDToCheck] != 0;
+        nftIncluded = CIDData[_cidNFTID][_subprotocolName].active.positions[_nftIDToCheck] != 0;
     }
 
     // TODO: Need to define standard for "liveness" check. If NFT is safeguarded, user should still be able to interact with it?
