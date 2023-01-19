@@ -80,6 +80,9 @@ contract SubprotocolRegistry {
         emit SubprotocolRegistered(msg.sender, _name, _nftAddress, _ordered, _primary, _active, _fee);
     }
 
+    /// @notice Getter function to retrieve subprotocol data
+    /// @param _name Name of the subprotocol to query
+    /// @return subprotocolData stored under _name. owner will be set to address(0) if subprotocol does not exist
     function getSubprotocol(string calldata _name) external view returns (SubprotocolData memory) {
         return subprotocols[_name];
     }
