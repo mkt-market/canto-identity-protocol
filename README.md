@@ -1,46 +1,19 @@
-# Forge Template
+# Canto Identity Protocol (CID)
 
-A template for quickly getting started with forge
+Canto Identity Protocol provides identity NFTs that associate different subprotocol NFTs (the identities) with one CID NFT, which in turn belongs to a person / wallet. The core protocol consists of three parts:
 
-## Getting Started
+## CID NFT
+Everyone can mint a CID NFT by using the `mint` function. Then, subprotocol NFTs can be associated with this NFT using the `add` function. Depending on how the subprotocol was configured when it was added to the registry, the association of the CID NFT with the subprotocol NFT looks different:
+- Ordered: In this association type, a mapping from integers (keys) to subprotocol NFTs is associated with a CID NFT / subprotocol.
+- Primary: Primary means that there is one (or zero) values that are associated with a CID NFT / subprotocol combination.
+- Active: In this case, a list of subprotocol NFTs can be associated with one CID NFT for the given subprotocol.
+`remove` is used to remove an association again.
 
-```
-mkdir my-project
-cd my-project
-forge init --template https://github.com/FrankieIsLost/forge-template
-git submodule update --init --recursive  ## initialize submodule dependencies
-npm install ## install development dependencies
-forge build
-forge test
-```
+## Subprotocol Registry
+The subprotocol registry is used to register new subprotocols. Every subprotocol is identified by a unique name. When adding it, the owner needs to define the allowed association types (see above) and if adding an NFT should cost a fee.
 
-## Features
+## Address Registry
+The address registry allows user to associate their address with a CID NFT. Therefore, on-chain or off-chain applications can check this registry to get the CID NFT ID that is associated with a user.
 
-### Testing Utilities
-
-Includes a `Utilities.sol` contract with common testing methods (like creating users with an initial balance), as well as various other utility contracts.
-
-### Preinstalled dependencies
-
-`ds-test` for testing, `forge-std` for better cheatcode UX, and `solmate` for optimized contract implementations.  
-
-### Linting
-
-Pre-configured `solhint` and `prettier-plugin-solidity`. Can be run by
-
-```
-npm run solhint
-npm run prettier
-```
-
-### CI with Github Actions
-
-Automatically run linting and tests on pull requests.
-
-### Default Configuration
-
-Including `.gitignore`, `.vscode`, `remappings.txt`
-
-## Acknowledgement
-
-Inspired by great dapptools templates like https://github.com/gakonst/forge-template, https://github.com/gakonst/dapptools-template and https://github.com/transmissions11/dapptools-template
+## Subprotocols
+To describe, common interface, liveness checks, ...
