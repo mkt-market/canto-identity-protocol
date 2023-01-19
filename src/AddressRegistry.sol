@@ -17,7 +17,7 @@ contract AddressRegistry {
                                  STATE
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Stores the mappings of users to their CID NFTR
+    /// @notice Stores the mappings of users to their CID NFT
     mapping(address => uint256) private cidNFTs;
 
     /*//////////////////////////////////////////////////////////////
@@ -32,10 +32,13 @@ contract AddressRegistry {
     error NFTNotOwnedByUser(uint256 cidNFTID, address caller);
     error NoCIDNFTRegisteredForUser(address caller);
 
+    /// @param _cidNFT Address of the CID NFT contract
     constructor(address _cidNFT) {
         cidNFT = _cidNFT;
     }
 
+    /// @notice Register a CID NFT to the address of the caller. NFT has to be owned by the caller
+    /// @dev Will overwrite existing registration if any exists
     function register(uint256 _cidNFTID) external {
         if (ERC721(cidNFT).ownerOf(_cidNFTID) != msg.sender)
             // ownerOf reverts if non-existing ID is provided
@@ -44,6 +47,7 @@ contract AddressRegistry {
         emit CIDNFTAdded(msg.sender, _cidNFTID);
     }
 
+    /// @notice Remove the current registration of the caller
     function remove() external {
         uint256 cidNFTID = cidNFTs[msg.sender];
         if (cidNFTID == 0) revert NoCIDNFTRegisteredForUser(msg.sender);
@@ -51,7 +55,9 @@ contract AddressRegistry {
         emit CIDNFTRemoved(msg.sender, cidNFTID);
     }
 
-    /// @dev Returns 0 when no CID NFT is registered for the given user
+    /// @notice Get the CID NFT ID that is registered for the provided user
+    /// @param _user Address to query
+    /// @return cidNFTID The registered CID NFT ID. 0 when no CID NFT is registered for the given address
     function getCID(address _user) external view returns (uint256 cidNFTID) {
         cidNFTID = cidNFTs[_user];
     }
