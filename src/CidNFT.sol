@@ -97,6 +97,7 @@ contract CidNFT is ERC721 {
     error TokenNotMinted(uint256 tokenID);
     error AddCallAfterMintingFailed(uint256 index);
     error SubprotocolDoesNotExist(string subprotocolName);
+    error NFTIDZeroDisallowedForSubprotocols();
     error AssociationTypeNotSupportedForSubprotocol(AssociationType associationType, string subprotocolName);
     error NotAuthorizedForCIDNFT(address caller, uint256 cidNFTID, address cidNFTOwner);
     error NotAuthorizedForSubprotocolNFT(address caller, uint256 subprotocolNFTID);
@@ -176,8 +177,9 @@ contract CidNFT is ERC721 {
             getApproved[_cidNFTID] != msg.sender &&
             !isApprovedForAll[cidNFTOwner][msg.sender]
         ) revert NotAuthorizedForCIDNFT(msg.sender, _cidNFTID, cidNFTOwner);
-        // The CID Protocol safeguards the NFTs of subprotocols. Note that these NFTs are usually pointers to other data / NFTs (e.g., to an image NFT for profile pictures)
+        if (_nftIDToAdd == 0) revert NFTIDZeroDisallowedForSubprotocols(); // ID 0 is disallowed in subprotocols
 
+        // The CID Protocol safeguards the NFTs of subprotocols. Note that these NFTs are usually pointers to other data / NFTs (e.g., to an image NFT for profile pictures)
         ERC721 nftToAdd = ERC721(subprotocolData.nftAddress);
         nftToAdd.safeTransferFrom(msg.sender, address(this), _cidNFTID);
         // Charge fee (subprotocol & CID fee) if configured
@@ -189,7 +191,7 @@ contract CidNFT is ERC721 {
         }
         if (_type == AssociationType.ORDERED) {
             if (!subprotocolData.ordered) revert AssociationTypeNotSupportedForSubprotocol(_type, _subprotocolName);
-            cidData[_cidNFTID][_subprotocolName].ordered[_key] = _nftIDToAdd; // TODO: Disallow adding 0? Would need to be a disallowed ID in identity subprotocols
+            cidData[_cidNFTID][_subprotocolName].ordered[_key] = _nftIDToAdd;
             emit OrderedDataAdded(_cidNFTID, _subprotocolName, _key, _nftIDToAdd);
         } else if (_type == AssociationType.PRIMARY) {
             if (!subprotocolData.primary) revert AssociationTypeNotSupportedForSubprotocol(_type, _subprotocolName);
@@ -322,6 +324,4 @@ contract CidNFT is ERC721 {
     ) external view returns (bool nftIncluded) {
         nftIncluded = cidData[_cidNFTID][_subprotocolName].active.positions[_nftIDToCheck] != 0;
     }
-
-    // TODO: Need to define standard for "liveness" check. If NFT is safeguarded, user should still be able to interact with it?
 }
