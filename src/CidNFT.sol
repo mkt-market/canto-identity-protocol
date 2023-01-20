@@ -98,7 +98,7 @@ contract CidNFT is ERC721 {
     error AddCallAfterMintingFailed(uint256 index);
     error SubprotocolDoesNotExist(string subprotocolName);
     error AssociationTypeNotSupportedForSubprotocol(AssociationType associationType, string subprotocolName);
-    error NotAuthorizedForCIDNFT(address caller, uint256 cidNFTID);
+    error NotAuthorizedForCIDNFT(address caller, uint256 cidNFTID, address cidNFTOwner);
     error NotAuthorizedForSubprotocolNFT(address caller, uint256 subprotocolNFTID);
     error ActiveArrayAlreadyContainsID(uint256 cidNFTID, string subprotocolName, uint256 nftIDToAdd);
     error OrderedValueNotSet(uint256 cidNFTID, string subprotocolName, uint256 key);
@@ -170,10 +170,14 @@ contract CidNFT is ERC721 {
         );
         address subprotocolOwner = subprotocolData.owner;
         if (subprotocolOwner == address(0)) revert SubprotocolDoesNotExist(_subprotocolName);
-        if (ownerOf[_cidNFTID] != msg.sender)
-            // TODO: Should delegated users be allowed to add?
-            revert NotAuthorizedForCIDNFT(msg.sender, _cidNFTID);
+        address cidNFTOwner = ownerOf[_cidNFTID];
+        if (
+            cidNFTOwner != msg.sender &&
+            getApproved[_cidNFTID] != msg.sender &&
+            !isApprovedForAll[cidNFTOwner][msg.sender]
+        ) revert NotAuthorizedForCIDNFT(msg.sender, _cidNFTID, cidNFTOwner);
         // The CID Protocol safeguards the NFTs of subprotocols. Note that these NFTs are usually pointers to other data / NFTs (e.g., to an image NFT for profile pictures)
+        
         ERC721 nftToAdd = ERC721(subprotocolData.nftAddress);
         nftToAdd.safeTransferFrom(msg.sender, address(this), _cidNFTID);
         // Charge fee (subprotocol & CID fee) if configured
@@ -229,11 +233,14 @@ contract CidNFT is ERC721 {
         );
         address subprotocolOwner = subprotocolData.owner;
         if (subprotocolOwner == address(0)) revert SubprotocolDoesNotExist(_subprotocolName);
-        ERC721 nftToRemove = ERC721(subprotocolData.nftAddress);
+        address cidNFTOwner = ownerOf[_cidNFTID];
+        if (
+            cidNFTOwner != msg.sender &&
+            getApproved[_cidNFTID] != msg.sender &&
+            !isApprovedForAll[cidNFTOwner][msg.sender]
+        ) revert NotAuthorizedForCIDNFT(msg.sender, _cidNFTID, cidNFTOwner);
 
-        if (ownerOf[_cidNFTID] != msg.sender)
-            // TODO: Should delegated users be allowed to remove?
-            revert NotAuthorizedForCIDNFT(msg.sender, _cidNFTID);
+        ERC721 nftToRemove = ERC721(subprotocolData.nftAddress);
         if (_type == AssociationType.ORDERED) {
             // We do not have to check if ordered is supported by the subprotocol. If not, the value will not be unset (which is checked below)
             uint256 currNFTID = cidData[_cidNFTID][_subprotocolName].ordered[_key];
