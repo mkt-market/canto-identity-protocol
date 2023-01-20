@@ -2,6 +2,8 @@
 pragma solidity >=0.8.0;
 
 import "solmate/tokens/ERC721.sol";
+import "solmate/tokens/ERC20.sol";
+import "solmate/utils/SafeTransferLib.sol";
 import "./CidSubprotocolNFT.sol";
 
 /// @title Subprotocol Registry
@@ -10,6 +12,15 @@ contract SubprotocolRegistry {
     /*//////////////////////////////////////////////////////////////
                                  STATE
     //////////////////////////////////////////////////////////////*/
+
+    /// @notice Fee for registering a new subprotocol (100 $NOTE)
+    uint256 public constant REGISTER_FEE = 100 * 10**18;
+
+    /// @notice Reference to the $NOTE TOKEN
+    ERC20 public immutable note;
+
+    /// @notice Wallet that receives fees paid when registering
+    address public immutable cidFeeWallet;
 
     /// @notice Data that is associated with a subprotocol.
     /// @dev Data types are chosen such that all data fits in one slot
@@ -48,7 +59,15 @@ contract SubprotocolRegistry {
     error NoTypeSpecified(string name);
     error NotASubprotocolNFT(address nftAddress);
 
-    /// @notice Register a new subprotocol
+    /// @notice Sets the reference to the $NOTE contract
+    /// @param _noteContract Address of the $NOTE contract
+    /// @param _cidFeeWallet Address of the wallet that receives the fees
+    constructor(address _noteContract, address _cidFeeWallet) {
+        note = ERC20(_noteContract);
+        cidFeeWallet = _cidFeeWallet;
+    }
+
+    /// @notice Register a new subprotocol. There is a 100 $NOTE fee when registering
     /// @dev The options ordered, primary, active are not mutually exclusive. In practice, only one will be set for most subprotocols,
     /// but if a subprotocol for instance supports int keys (mapped to one value) and a list of active NFTs, ordered and active is true.
     /// @param _ordered Ordering allows integers to be used as map keys, to one and only one value
@@ -65,6 +84,7 @@ contract SubprotocolRegistry {
         string calldata _name,
         uint96 _fee
     ) external {
+        SafeTransferLib.safeTransferFrom(note, msg.sender, cidFeeWallet, REGISTER_FEE);
         if (!(_ordered || _primary || _active)) revert NoTypeSpecified(_name);
         SubprotocolData memory subprotocolData = subprotocols[_name];
         if (subprotocolData.owner != address(0)) revert SubprotocolAlreadyExists(_name, subprotocolData.owner);
