@@ -1,12 +1,12 @@
 {
-  "name": "forge-template",
-  "author": "FrankieIsLost",
+  "name": "canto-identity-protocol",
+  "author": "mkt.market",
   "version": "1.0.0",
-  "description": "A forge template",
-  "homepage": "https://github.com/FrankieIsLost/forge-template#readme",
+  "description": "Identity on Canto",
+  "homepage": "https://github.com/mkt-market/canto-identity-protocol",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/FrankieIsLost/forge-template.git"
+    "url": "git+https://github.com/mkt-market/canto-identity-protocol.git"
   },
   "scripts": {
     "prettier": "prettier --write 'src/**/*.sol'",
