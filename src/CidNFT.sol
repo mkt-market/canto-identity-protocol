@@ -26,15 +26,15 @@ contract CidNFT is ERC721 {
     /// @notice Reference to the NOTE TOKEN
     ERC20 public immutable note;
 
-    /// @notice Base URI of the NFT
-    string public baseURI;
-
     /// @notice Reference to the subprotocol registry
     SubprotocolRegistry public immutable subprotocolRegistry;
 
     /*//////////////////////////////////////////////////////////////
                                  STATE
     //////////////////////////////////////////////////////////////*/
+
+    /// @notice Base URI of the NFT
+    string public baseURI;
 
     /// @notice Array of uint256 values (NFT IDs) with additional position information NFT ID => (array pos. + 1)
     struct IndexedArray {
