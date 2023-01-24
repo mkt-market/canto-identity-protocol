@@ -59,5 +59,25 @@ contract AddressRegistryTest is DSTest {
 
     }
 
+    function testRegisterNFTCallerIsOwner() public {
+
+        uint256 nftId = 1;
+        address owner = users[0];
+
+        // owner mint NFT
+        vm.prank(owner);
+        bytes[] memory addList;
+        cidNFT.mint(addList);
+        assertEq(cidNFT.ownerOf(nftId), owner);
+
+        // owner trys to register nft, succeed
+        vm.prank(owner);
+        addressRegistry.register(nftId);
+
+        // validate the regisered CID
+        uint256 cid = addressRegistry.getCID(owner);
+        assertEq(cid, nftId);
+
+    }
 
 }
