@@ -36,7 +36,7 @@ contract AddressRegistryTest is DSTest {
 
     function testRegisterNFTCallerNotOwner() public {
 
-        uint256 nftId = 1;
+        uint256 nftIdOne = 1;
         address owner = users[0];
         address hacker = users[1];
 
@@ -44,39 +44,67 @@ contract AddressRegistryTest is DSTest {
         vm.prank(owner);
         bytes[] memory addList;
         cidNFT.mint(addList);
-        assertEq(cidNFT.ownerOf(nftId), owner);
+        assertEq(cidNFT.ownerOf(nftIdOne), owner);
 
         // hacker try try to register nft, revert
         vm.prank(hacker);
         vm.expectRevert(
             abi.encodeWithSelector(
                 AddressRegistry.NFTNotOwnedByUser.selector, 
-                nftId, 
+                nftIdOne, 
                 hacker
             )
         );
-        addressRegistry.register(nftId);
+        addressRegistry.register(nftIdOne);
 
     }
 
     function testRegisterNFTCallerIsOwner() public {
 
-        uint256 nftId = 1;
+        uint256 nftIdOne = 1;
         address owner = users[0];
 
         // owner mint NFT
-        vm.prank(owner);
+        vm.startPrank(owner);
         bytes[] memory addList;
         cidNFT.mint(addList);
-        assertEq(cidNFT.ownerOf(nftId), owner);
+        assertEq(cidNFT.ownerOf(nftIdOne), owner);
 
         // owner trys to register nft, succeed
-        vm.prank(owner);
-        addressRegistry.register(nftId);
+        addressRegistry.register(nftIdOne);
 
         // validate the regisered CID
         uint256 cid = addressRegistry.getCID(owner);
-        assertEq(cid, nftId);
+        assertEq(cid, nftIdOne);
+
+    }
+
+    function testOwnerOverwriteRegisteredCID() public {
+        
+        uint256 nftIdOne = 1;
+        uint256 nftIdTwo = 2;
+        address owner = users[0];
+
+        // owner mint NFT
+        vm.startPrank(owner);
+        bytes[] memory addList;
+        cidNFT.mint(addList);
+        assertEq(cidNFT.ownerOf(nftIdOne), owner);
+
+        // owner trys to register nft, succeed
+        addressRegistry.register(nftIdOne);
+
+        // validate the regisered CID
+        uint256 cid = addressRegistry.getCID(owner);
+        assertEq(cid, nftIdOne);
+
+        // mint another NFT and overrite the CID
+        cidNFT.mint(addList);
+        addressRegistry.register(nftIdTwo);
+
+         // validate the regisered CID
+        cid = addressRegistry.getCID(owner);
+        assertEq(cid, nftIdTwo);
 
     }
 
