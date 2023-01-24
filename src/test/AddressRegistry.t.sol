@@ -6,6 +6,7 @@ import {Utilities} from "./utils/Utilities.sol";
 import {console} from "./utils/Console.sol";
 import {Vm} from "forge-std/Vm.sol";
 import "../AddressRegistry.sol";
+import "../CidNFT.sol";
 
 contract AddressRegistryTest is DSTest {
     Vm internal immutable vm = Vm(HEVM_ADDRESS);
@@ -14,13 +15,49 @@ contract AddressRegistryTest is DSTest {
     address payable[] internal users;
     AddressRegistry internal addressRegistry;
 
+    CidNFT cidNFT;
+
     function setUp() public {
         utils = new Utilities();
         users = utils.createUsers(5);
-        addressRegistry = new AddressRegistry(address(0));
+        
+
+        cidNFT = new CidNFT(
+            "MockCidNFT",
+            "MCNFT",
+            "base_uri/",
+            users[0],
+            address(0),
+            address(0)
+        );
+        addressRegistry = new AddressRegistry(address(cidNFT));
+
     }
 
-    function testExample() public {
-        assertTrue(true);
+    function testRegisterNFTCallerNotOwner() public {
+
+        uint256 nftId = 1;
+        address owner = users[0];
+        address hacker = users[1];
+
+        // owner mint NFT
+        vm.prank(owner);
+        bytes[] memory addList;
+        cidNFT.mint(addList);
+        assertEq(cidNFT.ownerOf(nftId), owner);
+
+        // hacker try try to register nft, revert
+        vm.prank(hacker);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AddressRegistry.NFTNotOwnedByUser.selector, 
+                nftId, 
+                hacker
+            )
+        );
+        addressRegistry.register(nftId);
+
     }
+
+
 }
