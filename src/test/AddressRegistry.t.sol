@@ -108,4 +108,19 @@ contract AddressRegistryTest is DSTest {
 
     }
 
+    function testRemoveWithoutRegister() public {
+
+        uint256 nftIdOne = 1;
+        address owner = users[0];
+        vm.prank(owner);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                AddressRegistry.NoCIDNFTRegisteredForUser.selector, 
+                owner
+            )
+        );
+        addressRegistry.remove();
+
+    }
+
 }
