@@ -123,4 +123,29 @@ contract AddressRegistryTest is DSTest {
 
     }
 
+    function testRemovePriorRegistration() public {
+
+        uint256 nftIdOne = 1;
+        address owner = users[0];
+
+        // owner mint NFT
+        vm.startPrank(owner);
+        bytes[] memory addList;
+        cidNFT.mint(addList);
+        assertEq(cidNFT.ownerOf(nftIdOne), owner);
+
+        // owner trys to register nft, succeed
+        addressRegistry.register(nftIdOne);
+
+        // validate the regisered CID
+        uint256 cid = addressRegistry.getCID(owner);
+        assertEq(cid, nftIdOne);
+
+        // remove CID and validate the removal
+        addressRegistry.remove();
+        cid = addressRegistry.getCID(owner);
+        assertEq(cid, 0);
+
+    }
+
 }
