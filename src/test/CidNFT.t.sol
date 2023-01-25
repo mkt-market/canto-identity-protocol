@@ -98,6 +98,34 @@ contract CidNFTTest is DSTest {
         );
     }
 
+    function testCannotRemoveWhenOrderedOrActiveNotSet() public {
+        uint256 tokenId = cidNFT.numMinted() + 1;
+        cidNFT.mint(new bytes[](0));
+        
+        uint256 key = 1;
+
+        // Trying to remove when ORDERED value not set should revert
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CidNFT.OrderedValueNotSet.selector,
+                tokenId,
+                "sub1",
+                key
+            )
+        );
+        cidNFT.remove(tokenId, "sub1", key, 1, CidNFT.AssociationType.ORDERED);
+
+        // Since PRIMARY value is not set, it should revert
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CidNFT.PrimaryValueNotSet.selector,
+                tokenId,
+                "sub2"
+            )
+        );
+        cidNFT.remove(tokenId, "sub2", key, 1, CidNFT.AssociationType.PRIMARY);
+    }
+
     function testMintWithoutAddList() public {
         // mint by this
         cidNFT.mint(new bytes[](0));
