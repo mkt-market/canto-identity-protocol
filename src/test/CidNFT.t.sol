@@ -46,4 +46,10 @@ contract CidNFTTest is DSTest {
         vm.expectRevert(abi.encodeWithSelector(CidNFT.NotAuthorizedForCIDNFT.selector, address(this), 0, address(0)));
         cidNFT.add(0, "sub1", 1, 1, CidNFT.AssociationType.ORDERED);
     }
+
+    function testAddNonExistingSubprotocol() public {
+        // Should revert if add data for non-existing subprotocol
+        vm.expectRevert(abi.encodeWithSelector(CidNFT.SubprotocolDoesNotExist.selector, "NonExisting"));
+        cidNFT.add(0, "NonExisting", 1, 1, CidNFT.AssociationType.ORDERED);
+    }
 }

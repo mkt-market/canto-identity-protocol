@@ -20,22 +20,12 @@ contract AddressRegistryTest is DSTest {
     function setUp() public {
         utils = new Utilities();
         users = utils.createUsers(5);
-        
 
-        cidNFT = new CidNFT(
-            "MockCidNFT",
-            "MCNFT",
-            "base_uri/",
-            users[0],
-            address(0),
-            address(0)
-        );
+        cidNFT = new CidNFT("MockCidNFT", "MCNFT", "base_uri/", users[0], address(0), address(0));
         addressRegistry = new AddressRegistry(address(cidNFT));
-
     }
 
     function testRegisterNFTCallerNotOwner() public {
-
         uint256 nftIdOne = 1;
         address owner = users[0];
         address hacker = users[1];
@@ -48,19 +38,11 @@ contract AddressRegistryTest is DSTest {
 
         // hacker try try to register nft, revert
         vm.prank(hacker);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                AddressRegistry.NFTNotOwnedByUser.selector, 
-                nftIdOne, 
-                hacker
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(AddressRegistry.NFTNotOwnedByUser.selector, nftIdOne, hacker));
         addressRegistry.register(nftIdOne);
-
     }
 
     function testRegisterNFTCallerIsOwner() public {
-
         uint256 nftIdOne = 1;
         address owner = users[0];
 
@@ -76,11 +58,9 @@ contract AddressRegistryTest is DSTest {
         // validate the regisered CID
         uint256 cid = addressRegistry.getCID(owner);
         assertEq(cid, nftIdOne);
-
     }
 
     function testOwnerOverwriteRegisteredCID() public {
-        
         uint256 nftIdOne = 1;
         uint256 nftIdTwo = 2;
         address owner = users[0];
@@ -102,29 +82,20 @@ contract AddressRegistryTest is DSTest {
         cidNFT.mint(addList);
         addressRegistry.register(nftIdTwo);
 
-         // validate the regisered CID
+        // validate the regisered CID
         cid = addressRegistry.getCID(owner);
         assertEq(cid, nftIdTwo);
-
     }
 
     function testRemoveWithoutRegister() public {
-
         uint256 nftIdOne = 1;
         address owner = users[0];
         vm.prank(owner);
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                AddressRegistry.NoCIDNFTRegisteredForUser.selector, 
-                owner
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(AddressRegistry.NoCIDNFTRegisteredForUser.selector, owner));
         addressRegistry.remove();
-
     }
 
     function testRemovePriorRegistration() public {
-
         uint256 nftIdOne = 1;
         address owner = users[0];
 
@@ -145,11 +116,9 @@ contract AddressRegistryTest is DSTest {
         addressRegistry.remove();
         cid = addressRegistry.getCID(owner);
         assertEq(cid, 0);
-
     }
 
     function testRemoveSecondTime() public {
-
         uint256 nftIdOne = 1;
         address owner = users[0];
 
@@ -171,14 +140,7 @@ contract AddressRegistryTest is DSTest {
         cid = addressRegistry.getCID(owner);
         assertEq(cid, 0);
 
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                AddressRegistry.NoCIDNFTRegisteredForUser.selector, 
-                owner
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(AddressRegistry.NoCIDNFTRegisteredForUser.selector, owner));
         addressRegistry.remove();
-
     }
-
 }
