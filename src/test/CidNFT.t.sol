@@ -172,6 +172,21 @@ contract CidNFTTest is DSTest {
         assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
     }
 
+    function testAddAsCidApprovedAllAccount() public {
+        (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(user2);
+        cidNFT.setApprovalForAll(user2, true);
+
+        // add as approved account (user1)
+        vm.startPrank(user2);
+        vm.expectEmit(true, true, true, true);
+        emit OrderedDataAdded(tokenId, "sub1", key1, sub1Id);
+        cidNFT.add(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
+        vm.stopPrank();
+
+        // confirm data
+        assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
+    }
+
     function testTokenURI() public {
         uint256 id1 = cidNFT.numMinted() + 1;
         uint256 id2 = cidNFT.numMinted() + 2;
