@@ -20,6 +20,12 @@ contract CidNFTTest is DSTest {
         uint256 indexed key,
         uint256 subprotocolNFTID
     );
+    event ActiveDataAdded(
+        uint256 indexed cidNFTID,
+        string indexed subprotocolName,
+        uint256 subprotocolNFTID,
+        uint256 arrayIndex
+    );
 
     Utilities internal utils;
     address payable[] internal users;
@@ -376,6 +382,39 @@ contract CidNFTTest is DSTest {
             assertEq(sub1.ownerOf(subId), user);
             uint256[] memory values = cidNFT.getActiveData(tokenId, "sub1");
             assertEq(values.length, 0);
+        }
+        vm.stopPrank();
+    }
+
+    function testAddMultipleActiveTypeValues() public {
+        address user = user1;
+        vm.startPrank(user);
+        // mint without add
+        uint256 tokenId = cidNFT.numMinted() + 1;
+        cidNFT.mint(new bytes[](0));
+
+        // prepare subprotocol NFTs
+        uint256[] memory subIds = new uint256[](10);
+        for (uint256 i = 0; i < subIds.length; i++) {
+            subIds[i] = 123 + i;
+            sub1.mint(user, subIds[i]);
+        }
+        sub1.setApprovalForAll(address(cidNFT), true);
+        // add all
+        for (uint256 i = 0; i < subIds.length; i++) {
+            // check event
+            vm.expectEmit(true, true, false, true);
+            emit ActiveDataAdded(tokenId, "sub1", subIds[i], i);
+            // add 1
+            cidNFT.add(tokenId, "sub1", 0, subIds[i], CidNFT.AssociationType.ACTIVE);
+            // check subprotocol NFT owner
+            assertEq(sub1.ownerOf(subIds[i]), address(cidNFT));
+        }
+        // check data
+        uint256[] memory values = cidNFT.getActiveData(tokenId, "sub1");
+        assertEq(values.length, subIds.length);
+        for (uint256 i = 0; i < subIds.length; i++) {
+            assertEq(values[i], subIds[i]);
         }
         vm.stopPrank();
     }
