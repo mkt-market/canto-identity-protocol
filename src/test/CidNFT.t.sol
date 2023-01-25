@@ -236,6 +236,30 @@ contract CidNFTTest is DSTest {
         assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
     }
 
+    function testAddDuplicate() public {
+        address user = user1;
+        (uint256 tokenId, uint256 subId, uint256 key) = prepareAddOne(user, user);
+
+        // Add Once
+        vm.startPrank(user);
+        cidNFT.add(tokenId, "sub1", key, subId, CidNFT.AssociationType.ACTIVE);
+        vm.stopPrank();
+
+        // Transfer the sub nft back to the user, this should not happen normally 
+        // since the sub nft should stay in the cid nft unless it got removed
+        // but the SubprotocolNFT can have arbitrary logic e.g. admin right
+        vm.startPrank(address(cidNFT));
+        sub1.safeTransferFrom(address(cidNFT), user, subId);
+        vm.stopPrank();
+        
+        // Add Twice and expect it to revert with ActiveArrayAlreadyContainsID
+        vm.startPrank(user);
+        sub1.approve(address(cidNFT), subId);
+        vm.expectRevert(abi.encodeWithSelector(CidNFT.ActiveArrayAlreadyContainsID.selector, tokenId, "sub1", subId));
+        cidNFT.add(tokenId, "sub1", key, subId, CidNFT.AssociationType.ACTIVE);
+        vm.stopPrank();
+    }
+
     function testAddAsCidApprovedAccount() public {
         (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(address(this), user1);
         cidNFT.approve(user1, tokenId);
