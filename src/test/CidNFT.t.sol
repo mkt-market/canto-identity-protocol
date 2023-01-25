@@ -258,6 +258,62 @@ contract CidNFTTest is DSTest {
         vm.stopPrank();
     }
 
+    function tryAddType(
+        bool valid,
+        string memory subName,
+        CidNFT.AssociationType aType
+    ) internal {
+        (uint256 tokenId, uint256 sub1Id, uint256 key) = prepareAddOne(address(this));
+        if (!valid) {
+            vm.expectRevert(
+                abi.encodeWithSelector(CidNFT.AssociationTypeNotSupportedForSubprotocol.selector, aType, subName)
+            );
+        }
+        cidNFT.add(tokenId, subName, key, sub1Id, aType);
+    }
+
+    function testAddUnsupportedAssociationType() public {
+        // register different subprotocols
+        vm.startPrank(user1);
+        subprotocolRegistry.register(true, false, false, address(sub1), "OrderedOnly", 0);
+        subprotocolRegistry.register(false, true, false, address(sub1), "PrimaryOnly", 0);
+        subprotocolRegistry.register(false, false, true, address(sub1), "ActiveOnly", 0);
+        subprotocolRegistry.register(true, true, false, address(sub1), "OrderedAndPrimary", 0);
+        subprotocolRegistry.register(true, false, true, address(sub1), "OrderedAndActive", 0);
+        subprotocolRegistry.register(false, true, true, address(sub1), "PrimaryAndActive", 0);
+        subprotocolRegistry.register(true, true, true, address(sub1), "AllTypes", 0);
+        vm.stopPrank();
+
+        // OrderedOnly
+        tryAddType(true, "OrderedOnly", CidNFT.AssociationType.ORDERED);
+        tryAddType(false, "OrderedOnly", CidNFT.AssociationType.PRIMARY);
+        tryAddType(false, "OrderedOnly", CidNFT.AssociationType.ACTIVE);
+        // PrimaryOnly
+        tryAddType(false, "PrimaryOnly", CidNFT.AssociationType.ORDERED);
+        tryAddType(true, "PrimaryOnly", CidNFT.AssociationType.PRIMARY);
+        tryAddType(false, "PrimaryOnly", CidNFT.AssociationType.ACTIVE);
+        // ActiveOnly
+        tryAddType(false, "ActiveOnly", CidNFT.AssociationType.ORDERED);
+        tryAddType(false, "ActiveOnly", CidNFT.AssociationType.PRIMARY);
+        tryAddType(true, "ActiveOnly", CidNFT.AssociationType.ACTIVE);
+        // OrderedAndPrimary
+        tryAddType(true, "OrderedAndPrimary", CidNFT.AssociationType.ORDERED);
+        tryAddType(true, "OrderedAndPrimary", CidNFT.AssociationType.PRIMARY);
+        tryAddType(false, "OrderedAndPrimary", CidNFT.AssociationType.ACTIVE);
+        // OrderedAndActive
+        tryAddType(true, "OrderedAndActive", CidNFT.AssociationType.ORDERED);
+        tryAddType(false, "OrderedAndActive", CidNFT.AssociationType.PRIMARY);
+        tryAddType(true, "OrderedAndActive", CidNFT.AssociationType.ACTIVE);
+        // PrimaryAndActive
+        tryAddType(false, "PrimaryAndActive", CidNFT.AssociationType.ORDERED);
+        tryAddType(true, "PrimaryAndActive", CidNFT.AssociationType.PRIMARY);
+        tryAddType(true, "PrimaryAndActive", CidNFT.AssociationType.ACTIVE);
+        // AllTypes
+        tryAddType(true, "AllTypes", CidNFT.AssociationType.ORDERED);
+        tryAddType(true, "AllTypes", CidNFT.AssociationType.PRIMARY);
+        tryAddType(true, "AllTypes", CidNFT.AssociationType.ACTIVE);
+    }
+
     function testTokenURI() public {
         uint256 id1 = cidNFT.numMinted() + 1;
         uint256 id2 = cidNFT.numMinted() + 2;
