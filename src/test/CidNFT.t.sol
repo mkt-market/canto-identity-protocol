@@ -22,6 +22,7 @@ contract CidNFTTest is DSTest {
 
     MockToken internal note;
     SubprotocolRegistry internal subprotocolRegistry;
+    SubprotocolNFT internal sub1;
     CidNFT internal cidNFT;
 
     function setUp() public {
@@ -32,7 +33,7 @@ contract CidNFTTest is DSTest {
         note = new MockToken();
         subprotocolRegistry = new SubprotocolRegistry(address(note), feeWallet);
         cidNFT = new CidNFT("MockCidNFT", "MCNFT", "base_uri/", feeWallet, address(note), address(subprotocolRegistry));
-        SubprotocolNFT sub1 = new SubprotocolNFT();
+        sub1 = new SubprotocolNFT();
 
         note.mint(user1, 10000 * 1e18);
         vm.startPrank(user1);
@@ -65,5 +66,22 @@ contract CidNFTTest is DSTest {
         tokenId = cidNFT.numMinted();
         assertEq(cidNFT.ownerOf(tokenId), user1);
         vm.stopPrank();
+    }
+
+    function testMintWithSingleAddList() public {
+        uint256 tokenId = cidNFT.numMinted() + 1;
+        // tokenId not minted yet
+        assertEq(cidNFT.ownerOf(tokenId), address(0));
+
+        // mint in subprotocol
+        uint256 subId = tokenId;
+        sub1.mint(address(this), subId);
+        sub1.setApprovalForAll(address(cidNFT), true);
+
+        bytes[] memory addList = new bytes[](1);
+        addList[0] = abi.encode(tokenId, "sub1", 0, subId, CidNFT.AssociationType.ORDERED);
+        cidNFT.mint(addList);
+        // confirm mint
+        assertEq(cidNFT.ownerOf(tokenId), address(this));
     }
 }
