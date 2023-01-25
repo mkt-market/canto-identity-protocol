@@ -386,15 +386,17 @@ contract CidNFTTest is DSTest {
         vm.stopPrank();
     }
 
-    function testAddMultipleActiveTypeValues() public {
-        address user = user1;
+    function addMultipleActiveTypeValues(address user, uint256 count)
+        internal
+        returns (uint256 tokenId, uint256[] memory subIds)
+    {
         vm.startPrank(user);
         // mint without add
-        uint256 tokenId = cidNFT.numMinted() + 1;
+        tokenId = cidNFT.numMinted() + 1;
         cidNFT.mint(new bytes[](0));
 
         // prepare subprotocol NFTs
-        uint256[] memory subIds = new uint256[](10);
+        subIds = new uint256[](count);
         for (uint256 i = 0; i < subIds.length; i++) {
             subIds[i] = 123 + i;
             sub1.mint(user, subIds[i]);
@@ -411,11 +413,54 @@ contract CidNFTTest is DSTest {
             assertEq(sub1.ownerOf(subIds[i]), address(cidNFT));
         }
         // check data
-        uint256[] memory values = cidNFT.getActiveData(tokenId, "sub1");
-        assertEq(values.length, subIds.length);
-        for (uint256 i = 0; i < subIds.length; i++) {
-            assertEq(values[i], subIds[i]);
+        checkActiveValues(tokenId, "sub1", subIds, subIds.length);
+        vm.stopPrank();
+    }
+
+    function testAddMultipleActiveTypeValues() public {
+        addMultipleActiveTypeValues(user1, 10);
+    }
+
+    function checkActiveValues(
+        uint256 tokenId,
+        string memory subName,
+        uint256[] memory expectedIds,
+        uint256 count
+    ) internal {
+        uint256[] memory values = cidNFT.getActiveData(tokenId, subName);
+        assertEq(values.length, count);
+        for (uint256 i = 0; i < count; i++) {
+            assertEq(values[i], expectedIds[i]);
         }
+    }
+
+    function testRemoveActiveValues() public {
+        address user = user1;
+        (uint256 tokenId, uint256[] memory expectedIds) = addMultipleActiveTypeValues(user, 10);
+        uint256 remain = 10;
+        vm.startPrank(user);
+
+        // remove first item
+        cidNFT.remove(tokenId, "sub1", 0, expectedIds[0], CidNFT.AssociationType.ACTIVE);
+        expectedIds[0] = expectedIds[--remain];
+        checkActiveValues(tokenId, "sub1", expectedIds, remain);
+
+        // remove middle item
+        cidNFT.remove(tokenId, "sub1", 0, expectedIds[3], CidNFT.AssociationType.ACTIVE);
+        expectedIds[3] = expectedIds[--remain];
+        checkActiveValues(tokenId, "sub1", expectedIds, remain);
+
+        // remove last item
+        cidNFT.remove(tokenId, "sub1", 0, expectedIds[remain - 1], CidNFT.AssociationType.ACTIVE);
+        remain--;
+        checkActiveValues(tokenId, "sub1", expectedIds, remain);
+
+        // remove all item
+        for (; remain > 0; remain--) {
+            cidNFT.remove(tokenId, "sub1", 0, expectedIds[remain - 1], CidNFT.AssociationType.ACTIVE);
+        }
+        checkActiveValues(tokenId, "sub1", new uint256[](0), remain);
+
         vm.stopPrank();
     }
 
