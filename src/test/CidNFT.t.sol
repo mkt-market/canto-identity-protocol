@@ -24,6 +24,7 @@ contract CidNFTTest is DSTest {
     MockToken internal note;
     SubprotocolRegistry internal subprotocolRegistry;
     SubprotocolNFT internal sub1;
+    SubprotocolNFT internal sub2;
     CidNFT internal cidNFT;
 
     function setUp() public {
@@ -35,11 +36,13 @@ contract CidNFTTest is DSTest {
         subprotocolRegistry = new SubprotocolRegistry(address(note), feeWallet);
         cidNFT = new CidNFT("MockCidNFT", "MCNFT", BASE_URI, feeWallet, address(note), address(subprotocolRegistry));
         sub1 = new SubprotocolNFT();
+        sub2 = new SubprotocolNFT();
 
         note.mint(user1, 10000 * 1e18);
         vm.startPrank(user1);
         note.approve(address(subprotocolRegistry), type(uint256).max);
         subprotocolRegistry.register(true, true, true, address(sub1), "sub1", 0);
+        subprotocolRegistry.register(true, true, true, address(sub2), "sub2", 0);
         vm.stopPrank();
     }
 
@@ -92,6 +95,31 @@ contract CidNFTTest is DSTest {
         cidNFT.mint(addList);
         // confirm mint
         assertEq(cidNFT.ownerOf(tokenId), address(this));
+    }
+
+    function testMintWithMultiAddItems() public {
+        uint256 tokenId = cidNFT.numMinted() + 1;
+
+        // mint in subprotocol
+        // todo: change the sub ids when CidNFT.add safeTransferFrom the correct id
+        uint256 sub1Id = tokenId;
+        uint256 sub2Id = tokenId;
+        sub1.mint(address(this), sub1Id);
+        sub1.approve(address(cidNFT), sub1Id);
+        sub2.mint(address(this), sub2Id);
+        sub2.approve(address(cidNFT), sub2Id);
+        (uint256 key1, uint256 key2) = (0, 1);
+
+        // todo: test more add items after bug fixed in CidNFT.add (safeTransferFrom id)
+        bytes[] memory addList = new bytes[](2);
+        addList[0] = abi.encode(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
+        addList[1] = abi.encode(tokenId, "sub2", key2, sub2Id, CidNFT.AssociationType.ORDERED);
+        cidNFT.mint(addList);
+        // confirm mint
+        assertEq(cidNFT.ownerOf(tokenId), address(this));
+        // confirm data
+        assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
+        assertEq(cidNFT.getOrderedData(tokenId, "sub2", key2), sub2Id);
     }
 
     function testTokenURI() public {
