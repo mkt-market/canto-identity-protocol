@@ -181,7 +181,7 @@ contract CidNFT is ERC721, ERC721TokenReceiver {
 
         // The CID Protocol safeguards the NFTs of subprotocols. Note that these NFTs are usually pointers to other data / NFTs (e.g., to an image NFT for profile pictures)
         ERC721 nftToAdd = ERC721(subprotocolData.nftAddress);
-        nftToAdd.safeTransferFrom(msg.sender, address(this), _cidNFTID);
+        nftToAdd.safeTransferFrom(msg.sender, address(this), _nftIDToAdd);
         // Charge fee (subprotocol & CID fee) if configured
         uint96 subprotocolFee = subprotocolData.fee;
         if (subprotocolFee != 0) {
