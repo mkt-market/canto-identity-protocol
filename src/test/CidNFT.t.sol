@@ -128,6 +128,36 @@ contract CidNFTTest is DSTest {
         assertEq(cidNFT.getOrderedData(tokenId, "sub2", key2), sub2Id);
     }
 
+    function testMintWithMultiAddItemsAndRevert() public {
+        uint256 tokenId = cidNFT.numMinted() + 1;
+
+        // mint in subprotocol
+        uint256 sub1Id = 12;
+        uint256 sub2Id = 34;
+        sub1.mint(address(this), sub1Id);
+        sub1.approve(address(cidNFT), sub1Id);
+        sub2.mint(address(this), sub2Id);
+        // sub2 not approved
+        // sub2.approve(address(cidNFT), sub2Id);
+        (uint256 key1, uint256 key2) = (0, 1);
+
+        bytes[] memory addList = new bytes[](2);
+        addList[0] = abi.encode(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
+        addList[1] = abi.encode(tokenId, "sub2", key2, sub2Id, CidNFT.AssociationType.ORDERED);
+
+        // revert by add[1]
+        vm.expectRevert(abi.encodeWithSelector(CidNFT.AddCallAfterMintingFailed.selector, 1));
+        cidNFT.mint(addList);
+        // tokenId of CidNFT is not minted
+        assertEq(cidNFT.ownerOf(tokenId), address(0));
+        // confirm data - not added
+        assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), 0);
+        assertEq(cidNFT.getOrderedData(tokenId, "sub2", key2), 0);
+        // sub NFTs are not transferred
+        assertEq(sub1.ownerOf(sub1Id), address(this));
+        assertEq(sub2.ownerOf(sub2Id), address(this));
+    }
+
     function prepareAddOne(address subOwner)
         internal
         returns (
