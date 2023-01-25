@@ -326,6 +326,60 @@ contract CidNFTTest is DSTest {
         tryAddType(true, "AllTypes", CidNFT.AssociationType.ACTIVE);
     }
 
+    function testAddRemoveOrderedType() public {
+        address user = user1;
+        (uint256 tokenId, uint256 subId, uint256 key) = prepareAddOne(user, user);
+        vm.startPrank(user);
+        cidNFT.add(tokenId, "sub1", key, subId, CidNFT.AssociationType.ORDERED);
+        // check add result
+        assertEq(sub1.ownerOf(subId), address(cidNFT));
+        assertEq(cidNFT.getOrderedData(tokenId, "sub1", key), subId);
+        // remove
+        cidNFT.remove(tokenId, "sub1", key, subId, CidNFT.AssociationType.ORDERED);
+        // check remove result
+        assertEq(sub1.ownerOf(subId), user);
+        assertEq(cidNFT.getOrderedData(tokenId, "sub1", key), 0);
+        vm.stopPrank();
+    }
+
+    function testAddRemovePrimaryType() public {
+        address user = user1;
+        (uint256 tokenId, uint256 subId, uint256 key) = prepareAddOne(user, user);
+        vm.startPrank(user);
+        cidNFT.add(tokenId, "sub1", key, subId, CidNFT.AssociationType.PRIMARY);
+        // check add result
+        assertEq(sub1.ownerOf(subId), address(cidNFT));
+        assertEq(cidNFT.getPrimaryData(tokenId, "sub1"), subId);
+        // remove
+        cidNFT.remove(tokenId, "sub1", key, subId, CidNFT.AssociationType.PRIMARY);
+        // check remove result
+        assertEq(sub1.ownerOf(subId), user);
+        assertEq(cidNFT.getPrimaryData(tokenId, "sub1"), 0);
+        vm.stopPrank();
+    }
+
+    function testAddRemoveActiveType() public {
+        address user = user1;
+        (uint256 tokenId, uint256 subId, uint256 key) = prepareAddOne(user, user);
+        vm.startPrank(user);
+        cidNFT.add(tokenId, "sub1", key, subId, CidNFT.AssociationType.ACTIVE);
+        {
+            // check add result
+            assertEq(sub1.ownerOf(subId), address(cidNFT));
+            uint256[] memory values = cidNFT.getActiveData(tokenId, "sub1");
+            assertEq(values.length, 1);
+        }
+        // remove
+        cidNFT.remove(tokenId, "sub1", key, subId, CidNFT.AssociationType.ACTIVE);
+        {
+            // check remove result
+            assertEq(sub1.ownerOf(subId), user);
+            uint256[] memory values = cidNFT.getActiveData(tokenId, "sub1");
+            assertEq(values.length, 0);
+        }
+        vm.stopPrank();
+    }
+
     function testAddWithNotEnoughFee() public {
         uint96 subFee = 10 * 1e18;
         vm.startPrank(user1);
