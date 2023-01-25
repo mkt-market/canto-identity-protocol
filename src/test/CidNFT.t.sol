@@ -4,6 +4,7 @@ pragma solidity >=0.8.0;
 import {Vm} from "forge-std/Vm.sol";
 import {DSTest} from "ds-test/test.sol";
 import {stdError} from "forge-std/stdlib.sol";
+import {ERC721TokenReceiver} from "solmate/tokens/ERC721.sol";
 import {Utilities} from "./utils/Utilities.sol";
 import {console} from "./utils/Console.sol";
 import "../CidNFT.sol";
@@ -11,10 +12,16 @@ import "../SubprotocolRegistry.sol";
 import "./mock/MockERC20.sol";
 import "./mock/SubprotocolNFT.sol";
 
-contract CidNFTTest is DSTest {
+contract CidNFTTest is DSTest, ERC721TokenReceiver {
     Vm internal immutable vm = Vm(HEVM_ADDRESS);
 
     event OrderedDataAdded(
+        uint256 indexed cidNFTID,
+        string indexed subprotocolName,
+        uint256 indexed key,
+        uint256 subprotocolNFTID
+    );
+    event OrderedDataRemoved(
         uint256 indexed cidNFTID,
         string indexed subprotocolName,
         uint256 indexed key,
@@ -223,10 +230,10 @@ contract CidNFTTest is DSTest {
         key1 = 1;
     }
 
-    function testAddAsCidOwner() public {
+    function testAddRemoveByOwner() public {
         (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(address(this), address(this));
 
-        // add as owner
+        // add by owner
         assertEq(cidNFT.ownerOf(tokenId), address(this));
         vm.expectEmit(true, true, true, true);
         emit OrderedDataAdded(tokenId, "sub1", key1, sub1Id);
@@ -234,45 +241,74 @@ contract CidNFTTest is DSTest {
 
         // confirm data
         assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
+
+        // remove by owner
+        vm.expectEmit(true, true, true, true);
+        emit OrderedDataRemoved(tokenId, "sub1", key1, sub1Id);
+        cidNFT.remove(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
     }
 
-    function testAddAsCidApprovedAccount() public {
+    function testAddRemoveByApprovedAccount() public {
         (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(address(this), user1);
         cidNFT.approve(user1, tokenId);
 
-        // add as approved account (user1)
+        // add by approved account
         vm.startPrank(user1);
         vm.expectEmit(true, true, true, true);
         emit OrderedDataAdded(tokenId, "sub1", key1, sub1Id);
         cidNFT.add(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
-        vm.stopPrank();
 
         // confirm data
         assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
+
+        // remove by approved account
+        vm.expectEmit(true, true, true, true);
+        emit OrderedDataRemoved(tokenId, "sub1", key1, sub1Id);
+        cidNFT.remove(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
+        vm.stopPrank();
     }
 
-    function testAddAsCidApprovedAllAccount() public {
+    function testAddRemoveByApprovedAllAccount() public {
         (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(address(this), user2);
         cidNFT.setApprovalForAll(user2, true);
 
-        // add as approved account
+        // add by approved all account
+        vm.startPrank(user2);
+        vm.expectEmit(true, true, true, true);
+        emit OrderedDataAdded(tokenId, "sub1", key1, sub1Id);
+        cidNFT.add(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
+
+        // confirm data
+        assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
+
+        // remove by approved all account
+        vm.expectEmit(true, true, true, true);
+        emit OrderedDataRemoved(tokenId, "sub1", key1, sub1Id);
+        cidNFT.remove(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
+        vm.stopPrank();
+    }
+
+    function testAddRemoveByUnauthorizedAccount() public {
+        (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(address(this), user2);
+
+        // add by unauthorized account
+        vm.startPrank(user2);
+        vm.expectRevert(abi.encodeWithSelector(CidNFT.NotAuthorizedForCIDNFT.selector, user2, tokenId, address(this)));
+        cidNFT.add(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
+        vm.stopPrank();
+
+        // approve and add
+        cidNFT.setApprovalForAll(user2, true);
         vm.startPrank(user2);
         vm.expectEmit(true, true, true, true);
         emit OrderedDataAdded(tokenId, "sub1", key1, sub1Id);
         cidNFT.add(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
         vm.stopPrank();
 
-        // confirm data
-        assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
-    }
-
-    function testAddFromCidUnauthorizedAccount() public {
-        (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(address(this), user2);
-
-        // add as unauthorized account
-        vm.startPrank(user2);
-        vm.expectRevert(abi.encodeWithSelector(CidNFT.NotAuthorizedForCIDNFT.selector, user2, tokenId, address(this)));
-        cidNFT.add(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
+        // remove by unauthorized account
+        vm.startPrank(user1);
+        vm.expectRevert(abi.encodeWithSelector(CidNFT.NotAuthorizedForCIDNFT.selector, user1, tokenId, address(this)));
+        cidNFT.remove(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
         vm.stopPrank();
     }
 
@@ -527,5 +563,14 @@ contract CidNFTTest is DSTest {
         // non-exist id
         vm.expectRevert(abi.encodeWithSelector(CidNFT.TokenNotMinted.selector, nonExistId));
         cidNFT.tokenURI(nonExistId);
+    }
+
+    function onERC721Received(
+        address, /*operator*/
+        address, /*from*/
+        uint256, /*id*/
+        bytes calldata /*data*/
+    ) external pure returns (bytes4) {
+        return ERC721TokenReceiver.onERC721Received.selector;
     }
 }
