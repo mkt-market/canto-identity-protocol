@@ -1,14 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity >=0.8.0;
 
-import "solmate/tokens/ERC721.sol";
+import {ERC721, ERC721TokenReceiver} from "solmate/tokens/ERC721.sol";
 import "solmate/tokens/ERC20.sol";
 import "solmate/utils/SafeTransferLib.sol";
 import "./SubprotocolRegistry.sol";
 
 /// @title Canto Identity Protocol NFT
 /// @notice CID NFTs are at the heart of the CID protocol. All key/values of subprotocols are associated with them.
-contract CidNFT is ERC721 {
+contract CidNFT is ERC721, ERC721TokenReceiver {
     /*//////////////////////////////////////////////////////////////
                                  CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -145,10 +145,9 @@ contract CidNFT is ERC721 {
         _mint(msg.sender, ++numMinted); // We do not use _safeMint here on purpose. If a contract calls this method, he expects to get an NFT back
         bytes4 addSelector = this.add.selector;
         for (uint256 i = 0; i < _addList.length; ++i) {
-            (
-                bool success, /*bytes memory result*/
-
-            ) = address(this).delegatecall(abi.encodePacked(addSelector, _addList[i]));
+            (bool success /*bytes memory result*/, ) = address(this).delegatecall(
+                abi.encodePacked(addSelector, _addList[i])
+            );
             if (!success) revert AddCallAfterMintingFailed(i);
         }
     }
@@ -293,11 +292,10 @@ contract CidNFT is ERC721 {
     /// @param _cidNFTID ID of the CID NFT to query
     /// @param _subprotocolName Name of the subprotocol to query
     /// @return subprotocolNFTID The ID of the primary NFT at the queried subprotocl / CID NFT. 0 if it does not exist
-    function getPrimaryData(uint256 _cidNFTID, string calldata _subprotocolName)
-        external
-        view
-        returns (uint256 subprotocolNFTID)
-    {
+    function getPrimaryData(
+        uint256 _cidNFTID,
+        string calldata _subprotocolName
+    ) external view returns (uint256 subprotocolNFTID) {
         subprotocolNFTID = cidData[_cidNFTID][_subprotocolName].primary;
     }
 
@@ -305,11 +303,10 @@ contract CidNFT is ERC721 {
     /// @param _cidNFTID ID of the CID NFT to query
     /// @param _subprotocolName Name of the subprotocol to query
     /// @return subprotocolNFTIDs The ID of the primary NFT at the queried subprotocl / CID NFT. 0 if it does not exist
-    function getActiveData(uint256 _cidNFTID, string calldata _subprotocolName)
-        external
-        view
-        returns (uint256[] memory subprotocolNFTIDs)
-    {
+    function getActiveData(
+        uint256 _cidNFTID,
+        string calldata _subprotocolName
+    ) external view returns (uint256[] memory subprotocolNFTIDs) {
         subprotocolNFTIDs = cidData[_cidNFTID][_subprotocolName].active.values;
     }
 
@@ -323,5 +320,14 @@ contract CidNFT is ERC721 {
         uint256 _nftIDToCheck
     ) external view returns (bool nftIncluded) {
         nftIncluded = cidData[_cidNFTID][_subprotocolName].active.positions[_nftIDToCheck] != 0;
+    }
+
+    function onERC721Received(
+        address /*operator*/,
+        address /*from*/,
+        uint256 /*id*/,
+        bytes calldata /*data*/
+    ) external pure returns (bytes4) {
+        return ERC721TokenReceiver.onERC721Received.selector;
     }
 }
