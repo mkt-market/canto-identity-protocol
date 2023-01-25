@@ -13,6 +13,13 @@ import "./mock/SubprotocolNFT.sol";
 contract CidNFTTest is DSTest {
     Vm internal immutable vm = Vm(HEVM_ADDRESS);
 
+    event OrderedDataAdded(
+        uint256 indexed cidNFTID,
+        string indexed subprotocolName,
+        uint256 indexed key,
+        uint256 subprotocolNFTID
+    );
+
     Utilities internal utils;
     address payable[] internal users;
 
@@ -120,6 +127,29 @@ contract CidNFTTest is DSTest {
         // confirm data
         assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
         assertEq(cidNFT.getOrderedData(tokenId, "sub2", key2), sub2Id);
+    }
+
+    function testAddAsCidOwner() public {
+        // mint without add
+        uint256 tokenId = cidNFT.numMinted() + 1;
+        assertEq(cidNFT.ownerOf(tokenId), address(0));
+        cidNFT.mint(new bytes[](0));
+
+        // mint in subprotocol
+        // todo: change the sub id when CidNFT.add safeTransferFrom the correct id
+        uint256 subId = tokenId;
+        sub1.mint(address(this), subId);
+        sub1.approve(address(cidNFT), subId);
+        uint256 key = 1;
+
+        // add as owner
+        assertEq(cidNFT.ownerOf(tokenId), address(this));
+        vm.expectEmit(true, true, true, true);
+        emit OrderedDataAdded(tokenId, "sub1", key, subId);
+        cidNFT.add(tokenId, "sub1", key, subId, CidNFT.AssociationType.ORDERED);
+
+        // confirm data
+        assertEq(cidNFT.getOrderedData(tokenId, "sub1", key), subId);
     }
 
     function testTokenURI() public {
