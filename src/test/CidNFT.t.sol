@@ -248,7 +248,6 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         cidNFT.remove(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
     }
 
-<<<<<<< issue-28
     function testAddDuplicate() public {
         address user = user1;
         (uint256 tokenId, uint256 subId, uint256 key) = prepareAddOne(user, user);
@@ -273,10 +272,7 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         vm.stopPrank();
     }
 
-    function testAddAsCidApprovedAccount() public {
-=======
     function testAddRemoveByApprovedAccount() public {
->>>>>>> c4-contest
         (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(address(this), user1);
         cidNFT.approve(user1, tokenId);
 
