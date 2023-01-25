@@ -135,27 +135,33 @@ contract CidNFTTest is DSTest {
     }
 
     function testMintWithMultiAddItems() public {
+        // add for other token id
+        uint256 prevTokenId = cidNFT.numMinted() + 1;
+        cidNFT.mint(new bytes[](0));
         uint256 tokenId = cidNFT.numMinted() + 1;
 
         // mint in subprotocol
         uint256 sub1Id = 12;
         uint256 sub2Id = 34;
+        uint256 prevPrimaryId = 56;
         sub1.mint(address(this), sub1Id);
         sub1.approve(address(cidNFT), sub1Id);
         sub2.mint(address(this), sub2Id);
-        sub2.approve(address(cidNFT), sub2Id);
+        sub2.mint(address(this), prevPrimaryId);
+        sub2.setApprovalForAll(address(cidNFT), true);
         (uint256 key1, uint256 key2) = (0, 1);
 
-        // todo: test more add items after bug fixed in CidNFT.add (safeTransferFrom id)
-        bytes[] memory addList = new bytes[](2);
+        bytes[] memory addList = new bytes[](3);
         addList[0] = abi.encode(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
         addList[1] = abi.encode(tokenId, "sub2", key2, sub2Id, CidNFT.AssociationType.ORDERED);
+        addList[2] = abi.encode(prevTokenId, "sub2", 0, prevPrimaryId, CidNFT.AssociationType.PRIMARY);
         cidNFT.mint(addList);
         // confirm mint
         assertEq(cidNFT.ownerOf(tokenId), address(this));
         // confirm data
         assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
         assertEq(cidNFT.getOrderedData(tokenId, "sub2", key2), sub2Id);
+        assertEq(cidNFT.getPrimaryData(prevTokenId, "sub2"), prevPrimaryId);
     }
 
     function testMintWithMultiAddItemsAndRevert() public {
