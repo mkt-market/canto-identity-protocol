@@ -135,27 +135,33 @@ contract CidNFTTest is DSTest {
     }
 
     function testMintWithMultiAddItems() public {
+        // add for other token id
+        uint256 prevTokenId = cidNFT.numMinted() + 1;
+        cidNFT.mint(new bytes[](0));
         uint256 tokenId = cidNFT.numMinted() + 1;
 
         // mint in subprotocol
         uint256 sub1Id = 12;
         uint256 sub2Id = 34;
+        uint256 prevPrimaryId = 56;
         sub1.mint(address(this), sub1Id);
         sub1.approve(address(cidNFT), sub1Id);
         sub2.mint(address(this), sub2Id);
-        sub2.approve(address(cidNFT), sub2Id);
+        sub2.mint(address(this), prevPrimaryId);
+        sub2.setApprovalForAll(address(cidNFT), true);
         (uint256 key1, uint256 key2) = (0, 1);
 
-        // todo: test more add items after bug fixed in CidNFT.add (safeTransferFrom id)
-        bytes[] memory addList = new bytes[](2);
+        bytes[] memory addList = new bytes[](3);
         addList[0] = abi.encode(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
         addList[1] = abi.encode(tokenId, "sub2", key2, sub2Id, CidNFT.AssociationType.ORDERED);
+        addList[2] = abi.encode(prevTokenId, "sub2", 0, prevPrimaryId, CidNFT.AssociationType.PRIMARY);
         cidNFT.mint(addList);
         // confirm mint
         assertEq(cidNFT.ownerOf(tokenId), address(this));
         // confirm data
         assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
         assertEq(cidNFT.getOrderedData(tokenId, "sub2", key2), sub2Id);
+        assertEq(cidNFT.getPrimaryData(prevTokenId, "sub2"), prevPrimaryId);
     }
 
     function testMintWithMultiAddItemsAndRevert() public {
@@ -318,6 +324,60 @@ contract CidNFTTest is DSTest {
         tryAddType(true, "AllTypes", CidNFT.AssociationType.ORDERED);
         tryAddType(true, "AllTypes", CidNFT.AssociationType.PRIMARY);
         tryAddType(true, "AllTypes", CidNFT.AssociationType.ACTIVE);
+    }
+
+    function testAddRemoveOrderedType() public {
+        address user = user1;
+        (uint256 tokenId, uint256 subId, uint256 key) = prepareAddOne(user, user);
+        vm.startPrank(user);
+        cidNFT.add(tokenId, "sub1", key, subId, CidNFT.AssociationType.ORDERED);
+        // check add result
+        assertEq(sub1.ownerOf(subId), address(cidNFT));
+        assertEq(cidNFT.getOrderedData(tokenId, "sub1", key), subId);
+        // remove
+        cidNFT.remove(tokenId, "sub1", key, subId, CidNFT.AssociationType.ORDERED);
+        // check remove result
+        assertEq(sub1.ownerOf(subId), user);
+        assertEq(cidNFT.getOrderedData(tokenId, "sub1", key), 0);
+        vm.stopPrank();
+    }
+
+    function testAddRemovePrimaryType() public {
+        address user = user1;
+        (uint256 tokenId, uint256 subId, uint256 key) = prepareAddOne(user, user);
+        vm.startPrank(user);
+        cidNFT.add(tokenId, "sub1", key, subId, CidNFT.AssociationType.PRIMARY);
+        // check add result
+        assertEq(sub1.ownerOf(subId), address(cidNFT));
+        assertEq(cidNFT.getPrimaryData(tokenId, "sub1"), subId);
+        // remove
+        cidNFT.remove(tokenId, "sub1", key, subId, CidNFT.AssociationType.PRIMARY);
+        // check remove result
+        assertEq(sub1.ownerOf(subId), user);
+        assertEq(cidNFT.getPrimaryData(tokenId, "sub1"), 0);
+        vm.stopPrank();
+    }
+
+    function testAddRemoveActiveType() public {
+        address user = user1;
+        (uint256 tokenId, uint256 subId, uint256 key) = prepareAddOne(user, user);
+        vm.startPrank(user);
+        cidNFT.add(tokenId, "sub1", key, subId, CidNFT.AssociationType.ACTIVE);
+        {
+            // check add result
+            assertEq(sub1.ownerOf(subId), address(cidNFT));
+            uint256[] memory values = cidNFT.getActiveData(tokenId, "sub1");
+            assertEq(values.length, 1);
+        }
+        // remove
+        cidNFT.remove(tokenId, "sub1", key, subId, CidNFT.AssociationType.ACTIVE);
+        {
+            // check remove result
+            assertEq(sub1.ownerOf(subId), user);
+            uint256[] memory values = cidNFT.getActiveData(tokenId, "sub1");
+            assertEq(values.length, 0);
+        }
+        vm.stopPrank();
     }
 
     function testAddWithNotEnoughFee() public {
