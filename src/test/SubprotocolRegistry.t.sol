@@ -39,6 +39,8 @@ contract AddressRegistryTest is DSTest {
     address user1;
     address user2;
 
+    uint256 feeAmount;
+
     function setUp() public {
 
         utils = new Utilities();
@@ -54,16 +56,17 @@ contract AddressRegistryTest is DSTest {
             feeWallet
         );
 
+        feeAmount = subprotocolRegistry.REGISTER_FEE();
+
+        vm.prank(user1);
+        token.approve(address(subprotocolRegistry), type(uint256).max);
+        token.mint(user1, feeAmount * 100);
+
     }
 
     function testRegisterDifferentAssociation() public {
 
-        uint256 feeAmount = subprotocolRegistry.REGISTER_FEE();
-
         vm.startPrank(user1);
-        token.approve(address(subprotocolRegistry), type(uint256).max);
-        token.mint(user1, feeAmount * 100);
-
         SubprotocolNFT subprotocolNFTOne = new SubprotocolNFT();
         subprotocolRegistry.register(
             true,
@@ -110,6 +113,39 @@ contract AddressRegistryTest is DSTest {
 
         assertEq(token.balanceOf(feeWallet), feeAmount * 4);
 
+
+    }
+
+    function testRegisterExistedProtocol() public {
+
+        vm.startPrank(user1);
+        string memory name = "subprotocol1";
+        SubprotocolNFT subprotocolNFTOne = new SubprotocolNFT();
+
+        subprotocolRegistry.register(
+            true,
+            false, 
+            false,
+            address(subprotocolNFTOne), 
+            name,
+            0
+        );
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SubprotocolRegistry.SubprotocolAlreadyExists.selector, 
+                name,
+                user1
+            )
+        );
+        subprotocolRegistry.register(
+            true,
+            false,
+            false,
+            address(subprotocolNFTOne), 
+            name,
+            0
+        );
 
     }
 
