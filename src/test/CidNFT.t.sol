@@ -176,7 +176,7 @@ contract CidNFTTest is DSTest {
         (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(user2);
         cidNFT.setApprovalForAll(user2, true);
 
-        // add as approved account (user1)
+        // add as approved account
         vm.startPrank(user2);
         vm.expectEmit(true, true, true, true);
         emit OrderedDataAdded(tokenId, "sub1", key1, sub1Id);
@@ -185,6 +185,16 @@ contract CidNFTTest is DSTest {
 
         // confirm data
         assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
+    }
+
+    function testAddFromCidUnauthorizedAccount() public {
+        (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(user2);
+
+        // add as unauthorized account
+        vm.startPrank(user2);
+        vm.expectRevert(abi.encodeWithSelector(CidNFT.NotAuthorizedForCIDNFT.selector, user2, tokenId, address(this)));
+        cidNFT.add(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
+        vm.stopPrank();
     }
 
     function testTokenURI() public {
