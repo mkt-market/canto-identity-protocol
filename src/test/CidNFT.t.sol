@@ -3,6 +3,7 @@ pragma solidity >=0.8.0;
 
 import {Vm} from "forge-std/Vm.sol";
 import {DSTest} from "ds-test/test.sol";
+import {stdError} from "forge-std/stdlib.sol";
 import {Utilities} from "./utils/Utilities.sol";
 import {console} from "./utils/Console.sol";
 import "../CidNFT.sol";
@@ -210,8 +211,7 @@ contract CidNFTTest is DSTest {
         assertEq(sub1.ownerOf(sub1Id), address(this));
         assertEq(sub2.ownerOf(sub2Id), address(this));
     }
-
-    function prepareAddOne(address subOwner)
+    function prepareAddOne(address cidOwner, address subOwner)
         internal
         returns (
             uint256 tokenId,
@@ -223,6 +223,7 @@ contract CidNFTTest is DSTest {
         tokenId = cidNFT.numMinted() + 1;
 
         assertEq(cidNFT.ownerOf(tokenId), address(0));
+        vm.prank(cidOwner);
         cidNFT.mint(new bytes[](0));
 
         // mint in subprotocol
@@ -234,7 +235,7 @@ contract CidNFTTest is DSTest {
     }
 
     function testAddAsCidOwner() public {
-        (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(address(this));
+        (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(address(this), address(this));
 
         // add as owner
         assertEq(cidNFT.ownerOf(tokenId), address(this));
@@ -247,7 +248,7 @@ contract CidNFTTest is DSTest {
     }
 
     function testAddAsCidApprovedAccount() public {
-        (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(user1);
+        (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(address(this), user1);
         cidNFT.approve(user1, tokenId);
 
         // add as approved account (user1)
@@ -262,7 +263,7 @@ contract CidNFTTest is DSTest {
     }
 
     function testAddAsCidApprovedAllAccount() public {
-        (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(user2);
+        (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(address(this), user2);
         cidNFT.setApprovalForAll(user2, true);
 
         // add as approved account
@@ -277,7 +278,7 @@ contract CidNFTTest is DSTest {
     }
 
     function testAddFromCidUnauthorizedAccount() public {
-        (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(user2);
+        (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(address(this), user2);
 
         // add as unauthorized account
         vm.startPrank(user2);
@@ -291,7 +292,7 @@ contract CidNFTTest is DSTest {
         string memory subName,
         CidNFT.AssociationType aType
     ) internal {
-        (uint256 tokenId, uint256 sub1Id, uint256 key) = prepareAddOne(address(this));
+        (uint256 tokenId, uint256 sub1Id, uint256 key) = prepareAddOne(address(this), address(this));
         if (!valid) {
             vm.expectRevert(
                 abi.encodeWithSelector(CidNFT.AssociationTypeNotSupportedForSubprotocol.selector, aType, subName)
@@ -340,6 +341,53 @@ contract CidNFTTest is DSTest {
         tryAddType(true, "AllTypes", CidNFT.AssociationType.ORDERED);
         tryAddType(true, "AllTypes", CidNFT.AssociationType.PRIMARY);
         tryAddType(true, "AllTypes", CidNFT.AssociationType.ACTIVE);
+    }
+
+    function testAddWithNotEnoughFee() public {
+        uint96 subFee = 10 * 1e18;
+        vm.startPrank(user1);
+        subprotocolRegistry.register(true, true, true, address(sub1), "SubWithFee", subFee);
+        vm.stopPrank();
+
+        (uint256 tokenId, uint256 subId, uint256 key) = prepareAddOne(user2, user2);
+        vm.startPrank(user2);
+        note.approve(address(cidNFT), type(uint256).max);
+        // revert for "Arithmetic over/underflow"
+        vm.expectRevert(stdError.arithmeticError);
+        cidNFT.add(tokenId, "SubWithFee", key, subId, CidNFT.AssociationType.ORDERED);
+        vm.stopPrank();
+    }
+
+    function testAddWithFee() public {
+        uint96 subFee = 10 * 1e18;
+        vm.startPrank(user1);
+        subprotocolRegistry.register(true, true, true, address(sub1), "SubWithFee", subFee);
+        vm.stopPrank();
+
+        // mint fee
+        note.mint(user2, 1000 * 1e18);
+
+        // record balances
+        uint256 balUser = note.balanceOf(user2);
+        uint256 balFeeWallet = note.balanceOf(feeWallet);
+        uint256 balSubOwner = note.balanceOf(user1);
+
+        (uint256 tokenId, uint256 subId, uint256 key) = prepareAddOne(user2, user2);
+        vm.startPrank(user2);
+        note.approve(address(cidNFT), type(uint256).max);
+        // add event
+        vm.expectEmit(true, true, true, true);
+        emit OrderedDataAdded(tokenId, "SubWithFee", key, subId);
+        cidNFT.add(tokenId, "SubWithFee", key, subId, CidNFT.AssociationType.ORDERED);
+        vm.stopPrank();
+        // confirm data
+        assertEq(cidNFT.getOrderedData(tokenId, "SubWithFee", key), subId);
+
+        // check fee flow
+        assertEq(note.balanceOf(user2), balUser - subFee);
+        uint256 cidFee = (subFee * cidNFT.CID_FEE_BPS()) / 10_000;
+        assertEq(note.balanceOf(feeWallet), balFeeWallet + cidFee);
+        assertEq(note.balanceOf(user1), balSubOwner + subFee - cidFee);
     }
 
     function testTokenURI() public {
