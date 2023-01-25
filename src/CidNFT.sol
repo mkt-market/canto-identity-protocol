@@ -145,9 +145,10 @@ contract CidNFT is ERC721, ERC721TokenReceiver {
         _mint(msg.sender, ++numMinted); // We do not use _safeMint here on purpose. If a contract calls this method, he expects to get an NFT back
         bytes4 addSelector = this.add.selector;
         for (uint256 i = 0; i < _addList.length; ++i) {
-            (bool success /*bytes memory result*/, ) = address(this).delegatecall(
-                abi.encodePacked(addSelector, _addList[i])
-            );
+            (
+                bool success, /*bytes memory result*/
+
+            ) = address(this).delegatecall(abi.encodePacked(addSelector, _addList[i]));
             if (!success) revert AddCallAfterMintingFailed(i);
         }
     }
@@ -292,10 +293,11 @@ contract CidNFT is ERC721, ERC721TokenReceiver {
     /// @param _cidNFTID ID of the CID NFT to query
     /// @param _subprotocolName Name of the subprotocol to query
     /// @return subprotocolNFTID The ID of the primary NFT at the queried subprotocl / CID NFT. 0 if it does not exist
-    function getPrimaryData(
-        uint256 _cidNFTID,
-        string calldata _subprotocolName
-    ) external view returns (uint256 subprotocolNFTID) {
+    function getPrimaryData(uint256 _cidNFTID, string calldata _subprotocolName)
+        external
+        view
+        returns (uint256 subprotocolNFTID)
+    {
         subprotocolNFTID = cidData[_cidNFTID][_subprotocolName].primary;
     }
 
@@ -303,10 +305,11 @@ contract CidNFT is ERC721, ERC721TokenReceiver {
     /// @param _cidNFTID ID of the CID NFT to query
     /// @param _subprotocolName Name of the subprotocol to query
     /// @return subprotocolNFTIDs The ID of the primary NFT at the queried subprotocl / CID NFT. 0 if it does not exist
-    function getActiveData(
-        uint256 _cidNFTID,
-        string calldata _subprotocolName
-    ) external view returns (uint256[] memory subprotocolNFTIDs) {
+    function getActiveData(uint256 _cidNFTID, string calldata _subprotocolName)
+        external
+        view
+        returns (uint256[] memory subprotocolNFTIDs)
+    {
         subprotocolNFTIDs = cidData[_cidNFTID][_subprotocolName].active.values;
     }
 
@@ -323,9 +326,9 @@ contract CidNFT is ERC721, ERC721TokenReceiver {
     }
 
     function onERC721Received(
-        address /*operator*/,
-        address /*from*/,
-        uint256 /*id*/,
+        address, /*operator*/
+        address, /*from*/
+        uint256, /*id*/
         bytes calldata /*data*/
     ) external pure returns (bytes4) {
         return ERC721TokenReceiver.onERC721Received.selector;
