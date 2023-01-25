@@ -19,6 +19,7 @@ contract CidNFTTest is DSTest {
     address internal feeWallet;
     address internal user1;
     address internal user2;
+    string internal constant BASE_URI = "tbd://base_uri/";
 
     MockToken internal note;
     SubprotocolRegistry internal subprotocolRegistry;
@@ -32,7 +33,7 @@ contract CidNFTTest is DSTest {
 
         note = new MockToken();
         subprotocolRegistry = new SubprotocolRegistry(address(note), feeWallet);
-        cidNFT = new CidNFT("MockCidNFT", "MCNFT", "base_uri/", feeWallet, address(note), address(subprotocolRegistry));
+        cidNFT = new CidNFT("MockCidNFT", "MCNFT", BASE_URI, feeWallet, address(note), address(subprotocolRegistry));
         sub1 = new SubprotocolNFT();
 
         note.mint(user1, 10000 * 1e18);
@@ -83,5 +84,23 @@ contract CidNFTTest is DSTest {
         cidNFT.mint(addList);
         // confirm mint
         assertEq(cidNFT.ownerOf(tokenId), address(this));
+    }
+
+    function testTokenURI() public {
+        uint256 id1 = cidNFT.numMinted() + 1;
+        uint256 id2 = cidNFT.numMinted() + 2;
+        uint256 nonExistId = cidNFT.numMinted() + 3;
+        // mint id1
+        cidNFT.mint(new bytes[](0));
+        // mint id2
+        cidNFT.mint(new bytes[](0));
+
+        // exist id
+        assertEq(cidNFT.tokenURI(id1), string(abi.encodePacked(BASE_URI, id1, ".json")));
+        assertEq(cidNFT.tokenURI(id2), string(abi.encodePacked(BASE_URI, id2, ".json")));
+
+        // non-exist id
+        vm.expectRevert(abi.encodeWithSelector(CidNFT.TokenNotMinted.selector, nonExistId));
+        cidNFT.tokenURI(nonExistId);
     }
 }
