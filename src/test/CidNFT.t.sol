@@ -31,40 +31,19 @@ contract CidNFTTest is DSTest {
 
         note = new MockToken();
         subprotocolRegistry = new SubprotocolRegistry(address(note), feeWallet);
-        cidNFT = new CidNFT(
-            "MockCidNFT",
-            "MCNFT",
-            "base_uri/",
-            feeWallet,
-            address(note),
-            address(subprotocolRegistry)
-        );
+        cidNFT = new CidNFT("MockCidNFT", "MCNFT", "base_uri/", feeWallet, address(note), address(subprotocolRegistry));
         SubprotocolNFT sub1 = new SubprotocolNFT();
 
         note.mint(user1, 10000 * 1e18);
         vm.startPrank(user1);
         note.approve(address(subprotocolRegistry), type(uint256).max);
-        subprotocolRegistry.register(
-            true,
-            true,
-            true,
-            address(sub1),
-            "sub1",
-            0
-        );
+        subprotocolRegistry.register(true, true, true, address(sub1), "sub1", 0);
         vm.stopPrank();
     }
 
     function testAddID0() public {
         // Should revert if trying to add NFT ID 0
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                CidNFT.NotAuthorizedForCIDNFT.selector,
-                address(this),
-                0,
-                address(0)
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(CidNFT.NotAuthorizedForCIDNFT.selector, address(this), 0, address(0)));
         cidNFT.add(0, "sub1", 1, 1, CidNFT.AssociationType.ORDERED);
     }
 }
