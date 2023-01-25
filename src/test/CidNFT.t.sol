@@ -374,6 +374,7 @@ contract CidNFTTest is DSTest {
             assertEq(sub1.ownerOf(subId), address(cidNFT));
             uint256[] memory values = cidNFT.getActiveData(tokenId, "sub1");
             assertEq(values.length, 1);
+            assertTrue(cidNFT.activeDataIncludesNFT(tokenId, "sub1", subId));
         }
         // remove
         cidNFT.remove(tokenId, "sub1", key, subId, CidNFT.AssociationType.ACTIVE);
@@ -382,6 +383,7 @@ contract CidNFTTest is DSTest {
             assertEq(sub1.ownerOf(subId), user);
             uint256[] memory values = cidNFT.getActiveData(tokenId, "sub1");
             assertEq(values.length, 0);
+            assertTrue(!cidNFT.activeDataIncludesNFT(tokenId, "sub1", subId));
         }
         vm.stopPrank();
     }
