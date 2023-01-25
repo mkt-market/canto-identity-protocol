@@ -9,20 +9,9 @@ import "../AddressRegistry.sol";
 import "../SubprotocolRegistry.sol";
 import "../CidSubprotocolNFT.sol";
 import "./mock/MockERC20.sol";
+import "./mock/SubprotocolNFT.sol";
+import "./mock/NotComplaintNFT.sol";
 
-contract SubprotocolNFT is CidSubprotocolNFT {
-
-    constructor() ERC721("MockNFT", "MNFT") {}
-
-    function isActive(uint256 _nftID) public override returns (bool active) {
-        return true;
-    }
-
-    function tokenURI(uint256 id) public view override returns (string memory) {
-        return "";
-    }
-
-}
 
 contract AddressRegistryTest is DSTest {
 
@@ -143,6 +132,29 @@ contract AddressRegistryTest is DSTest {
             false,
             false,
             address(subprotocolNFTOne), 
+            name,
+            0
+        );
+
+    }
+
+    function testRegisterNotSubprotocolComplaintNFT() public {
+
+        vm.startPrank(user1);
+        string memory name = "subprotocol1";
+        NotComplaintNFT notComplaintNFT = new NotComplaintNFT();
+
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                SubprotocolRegistry.NotASubprotocolNFT.selector, 
+                address(notComplaintNFT)
+            )
+        );
+        subprotocolRegistry.register(
+            true,
+            false, 
+            false,
+            address(notComplaintNFT), 
             name,
             0
         );
