@@ -108,9 +108,8 @@ contract CidNFTTest is DSTest {
         uint256 tokenId = cidNFT.numMinted() + 1;
 
         // mint in subprotocol
-        // todo: change the sub ids when CidNFT.add safeTransferFrom the correct id
-        uint256 sub1Id = tokenId;
-        uint256 sub2Id = tokenId;
+        uint256 sub1Id = 12;
+        uint256 sub2Id = 34;
         sub1.mint(address(this), sub1Id);
         sub1.approve(address(cidNFT), sub1Id);
         sub2.mint(address(this), sub2Id);
@@ -129,14 +128,21 @@ contract CidNFTTest is DSTest {
         assertEq(cidNFT.getOrderedData(tokenId, "sub2", key2), sub2Id);
     }
 
-    function prepareAddOne(address subOwner) internal returns (uint256 tokenId, uint256 sub1Id, uint256 key1) {
+    function prepareAddOne(address subOwner)
+        internal
+        returns (
+            uint256 tokenId,
+            uint256 sub1Id,
+            uint256 key1
+        )
+    {
         // mint without add
         tokenId = cidNFT.numMinted() + 1;
+
         assertEq(cidNFT.ownerOf(tokenId), address(0));
         cidNFT.mint(new bytes[](0));
 
         // mint in subprotocol
-        // todo: change the sub id when CidNFT.add safeTransferFrom the correct id
         sub1Id = tokenId;
         sub1.mint(subOwner, sub1Id);
         vm.prank(subOwner);
