@@ -13,6 +13,13 @@ import "./mock/SubprotocolNFT.sol";
 contract CidNFTTest is DSTest {
     Vm internal immutable vm = Vm(HEVM_ADDRESS);
 
+    event OrderedDataAdded(
+        uint256 indexed cidNFTID,
+        string indexed subprotocolName,
+        uint256 indexed key,
+        uint256 subprotocolNFTID
+    );
+
     Utilities internal utils;
     address payable[] internal users;
 
@@ -120,6 +127,74 @@ contract CidNFTTest is DSTest {
         // confirm data
         assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
         assertEq(cidNFT.getOrderedData(tokenId, "sub2", key2), sub2Id);
+    }
+
+    function prepareAddOne(address subOwner) internal returns (uint256 tokenId, uint256 sub1Id, uint256 key1) {
+        // mint without add
+        tokenId = cidNFT.numMinted() + 1;
+        assertEq(cidNFT.ownerOf(tokenId), address(0));
+        cidNFT.mint(new bytes[](0));
+
+        // mint in subprotocol
+        // todo: change the sub id when CidNFT.add safeTransferFrom the correct id
+        sub1Id = tokenId;
+        sub1.mint(subOwner, sub1Id);
+        vm.prank(subOwner);
+        sub1.approve(address(cidNFT), sub1Id);
+        key1 = 1;
+    }
+
+    function testAddAsCidOwner() public {
+        (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(address(this));
+
+        // add as owner
+        assertEq(cidNFT.ownerOf(tokenId), address(this));
+        vm.expectEmit(true, true, true, true);
+        emit OrderedDataAdded(tokenId, "sub1", key1, sub1Id);
+        cidNFT.add(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
+
+        // confirm data
+        assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
+    }
+
+    function testAddAsCidApprovedAccount() public {
+        (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(user1);
+        cidNFT.approve(user1, tokenId);
+
+        // add as approved account (user1)
+        vm.startPrank(user1);
+        vm.expectEmit(true, true, true, true);
+        emit OrderedDataAdded(tokenId, "sub1", key1, sub1Id);
+        cidNFT.add(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
+        vm.stopPrank();
+
+        // confirm data
+        assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
+    }
+
+    function testAddAsCidApprovedAllAccount() public {
+        (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(user2);
+        cidNFT.setApprovalForAll(user2, true);
+
+        // add as approved account
+        vm.startPrank(user2);
+        vm.expectEmit(true, true, true, true);
+        emit OrderedDataAdded(tokenId, "sub1", key1, sub1Id);
+        cidNFT.add(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
+        vm.stopPrank();
+
+        // confirm data
+        assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
+    }
+
+    function testAddFromCidUnauthorizedAccount() public {
+        (uint256 tokenId, uint256 sub1Id, uint256 key1) = prepareAddOne(user2);
+
+        // add as unauthorized account
+        vm.startPrank(user2);
+        vm.expectRevert(abi.encodeWithSelector(CidNFT.NotAuthorizedForCIDNFT.selector, user2, tokenId, address(this)));
+        cidNFT.add(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
+        vm.stopPrank();
     }
 
     function testTokenURI() public {
