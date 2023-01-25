@@ -83,47 +83,23 @@ contract CidNFTTest is DSTest {
 
         // Should revert when non-existing entry is inputted
         vm.expectRevert(
-            abi.encodeWithSelector(
-                CidNFT.ActiveArrayDoesNotContainID.selector,
-                tokenId,
-                "sub1",
-                nftIDToRemove
-            )
+            abi.encodeWithSelector(CidNFT.ActiveArrayDoesNotContainID.selector, tokenId, "sub1", nftIDToRemove)
         );
-        cidNFT.remove(
-            tokenId,
-            "sub1",
-            0,
-            nftIDToRemove,
-            CidNFT.AssociationType.ACTIVE
-        );
+        cidNFT.remove(tokenId, "sub1", 0, nftIDToRemove, CidNFT.AssociationType.ACTIVE);
     }
 
     function testCannotRemoveWhenOrderedOrActiveNotSet() public {
         uint256 tokenId = cidNFT.numMinted() + 1;
         cidNFT.mint(new bytes[](0));
-        
+
         uint256 key = 1;
 
         // Trying to remove when ORDERED value not set should revert
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                CidNFT.OrderedValueNotSet.selector,
-                tokenId,
-                "sub1",
-                key
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(CidNFT.OrderedValueNotSet.selector, tokenId, "sub1", key));
         cidNFT.remove(tokenId, "sub1", key, 1, CidNFT.AssociationType.ORDERED);
 
         // Since PRIMARY value is not set, it should revert
-        vm.expectRevert(
-            abi.encodeWithSelector(
-                CidNFT.PrimaryValueNotSet.selector,
-                tokenId,
-                "sub2"
-            )
-        );
+        vm.expectRevert(abi.encodeWithSelector(CidNFT.PrimaryValueNotSet.selector, tokenId, "sub2"));
         cidNFT.remove(tokenId, "sub2", key, 1, CidNFT.AssociationType.PRIMARY);
     }
 
@@ -211,6 +187,7 @@ contract CidNFTTest is DSTest {
         assertEq(sub1.ownerOf(sub1Id), address(this));
         assertEq(sub2.ownerOf(sub2Id), address(this));
     }
+
     function prepareAddOne(address cidOwner, address subOwner)
         internal
         returns (
