@@ -161,4 +161,32 @@ contract AddressRegistryTest is DSTest {
 
     }
 
+    function testReturnedDataMatchSubprotocol() public {
+
+        vm.startPrank(user1);
+        string memory name = "subprotocol1";
+        uint96 subprotocolFee = 100;
+        
+        SubprotocolNFT subprotocolNFTOne = new SubprotocolNFT();
+
+        subprotocolRegistry.register(
+            true,
+            true, 
+            false,
+            address(subprotocolNFTOne), 
+            name,
+            subprotocolFee
+        );
+
+        SubprotocolRegistry.SubprotocolData memory data = subprotocolRegistry.getSubprotocol(name);
+
+        assertEq(data.owner, user1);
+        assertEq(data.fee, subprotocolFee);
+        assertEq(data.nftAddress, address(subprotocolNFTOne));
+        assert(data.ordered == true);
+        assert(data.primary == true);
+        assert(data.active == false);
+ 
+    }
+
 }
