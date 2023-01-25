@@ -55,6 +55,14 @@ contract CidNFTTest is DSTest {
         cidNFT.add(0, "NonExisting", 1, 1, CidNFT.AssociationType.ORDERED);
     }
 
+    function testRemoveNonExistingSubprotocol() public {
+        uint256 tokenId = cidNFT.numMinted() + 1;
+        cidNFT.mint(new bytes[](0));
+        // Should revert if remove with non-existing subprotocol
+        vm.expectRevert(abi.encodeWithSelector(CidNFT.SubprotocolDoesNotExist.selector, "NonExisting"));
+        cidNFT.remove(tokenId, "NonExisting", 1, 1, CidNFT.AssociationType.ORDERED);
+    }
+
     function testMintWithoutAddList() public {
         // mint by this
         cidNFT.mint(new bytes[](0));
