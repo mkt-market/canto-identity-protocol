@@ -70,18 +70,18 @@ contract CidNFTTest is DSTest {
 
     function testMintWithSingleAddList() public {
         uint256 tokenId = cidNFT.numMinted() + 1;
+        // tokenId not minted yet
         assertEq(cidNFT.ownerOf(tokenId), address(0));
 
-        cidNFT.mint(new bytes[](0));
         // mint in subprotocol
-        sub1.mint(address(this), tokenId);
+        uint256 subId = tokenId;
+        sub1.mint(address(this), subId);
         sub1.setApprovalForAll(address(cidNFT), true);
 
         bytes[] memory addList = new bytes[](1);
-        addList[0] = abi.encode(tokenId, "sub1", 1, 1, CidNFT.AssociationType.ORDERED);
-        // todo: need to fix CidNFT.
-        // for now, mint will fail because CidNFT::onERC721Received is not implemented,
+        addList[0] = abi.encode(tokenId, "sub1", 0, subId, CidNFT.AssociationType.ORDERED);
         cidNFT.mint(addList);
+        // confirm mint
         assertEq(cidNFT.ownerOf(tokenId), address(this));
     }
 }
