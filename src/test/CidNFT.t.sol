@@ -73,6 +73,31 @@ contract CidNFTTest is DSTest {
         cidNFT.remove(tokenId, "NonExisting", 1, 1, CidNFT.AssociationType.ORDERED);
     }
 
+    function testCannotRemoveNonExistingEntry() public {
+        uint256 tokenId = cidNFT.numMinted() + 1;
+        cidNFT.mint(new bytes[](0));
+
+        // NFT id that does not exist
+        uint256 nftIDToRemove = 1;
+
+        // Should revert when non-existing entry is inputted
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                CidNFT.ActiveArrayDoesNotContainID.selector,
+                tokenId,
+                "sub1",
+                nftIDToRemove
+            )
+        );
+        cidNFT.remove(
+            tokenId,
+            "sub1",
+            0,
+            nftIDToRemove,
+            CidNFT.AssociationType.ACTIVE
+        );
+    }
+
     function testMintWithoutAddList() public {
         // mint by this
         cidNFT.mint(new bytes[](0));
