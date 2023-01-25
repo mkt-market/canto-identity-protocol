@@ -107,4 +107,14 @@ contract AddressRegistryTest is DSTest {
         assert(data.primary == true);
         assert(data.active == false);
     }
+
+    function testCannotRegisterWithoutTypeSpecified() public {
+        vm.startPrank(user1);
+        SubprotocolNFT subprotocolNFT = new SubprotocolNFT();
+        string memory name = "test name";
+
+        // Should revert if no type is specified
+        vm.expectRevert(abi.encodeWithSelector(SubprotocolRegistry.NoTypeSpecified.selector, name));
+        subprotocolRegistry.register(false, false, false, address(subprotocolNFT), name, 0);
+    }
 }
