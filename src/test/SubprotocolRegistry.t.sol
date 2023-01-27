@@ -12,7 +12,7 @@ import "./mock/MockERC20.sol";
 import "./mock/SubprotocolNFT.sol";
 import "./mock/NotCompliantNFT.sol";
 
-contract AddressRegistryTest is DSTest {
+contract SubprotocolRegistryTest is DSTest {
     Vm internal immutable vm = Vm(HEVM_ADDRESS);
 
     Utilities internal utils;
