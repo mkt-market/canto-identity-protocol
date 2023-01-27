@@ -17,3 +17,15 @@ The address registry allows user to associate their address with a CID NFT. Ther
 
 ## Subprotocols
 To describe, common interface, liveness checks, ...
+
+# Testing
+
+```
+forge test
+```
+
+## Checking Coverage
+
+```
+forge coverage
+```
