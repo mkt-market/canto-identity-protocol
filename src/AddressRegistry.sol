@@ -40,7 +40,8 @@ contract AddressRegistry {
     /// @notice Register a CID NFT to the address of the caller. NFT has to be owned by the caller
     /// @dev Will overwrite existing registration if any exists
     function register(uint256 _cidNFTID) external {
-        if (ERC721(cidNFT).ownerOf(_cidNFTID) != msg.sender) // We only guarantee that a CID NFT is owned by the user at the time of registration
+        if (ERC721(cidNFT).ownerOf(_cidNFTID) != msg.sender)
+            // We only guarantee that a CID NFT is owned by the user at the time of registration
             // ownerOf reverts if non-existing ID is provided
             revert NFTNotOwnedByUser(_cidNFTID, msg.sender);
         cidNFTs[msg.sender] = _cidNFTID;
