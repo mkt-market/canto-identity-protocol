@@ -13,7 +13,6 @@ import "./mock/MockERC20.sol";
 import "./mock/SubprotocolNFT.sol";
 
 contract IntegrationTest is DSTest {
-
     Vm internal immutable vm = Vm(HEVM_ADDRESS);
 
     Utilities internal utils;
@@ -36,7 +35,6 @@ contract IntegrationTest is DSTest {
     CidNFT internal cidNFT;
 
     function setUp() public {
-
         utils = new Utilities();
         users = utils.createUsers(6);
 
@@ -49,16 +47,9 @@ contract IntegrationTest is DSTest {
 
         note = new MockToken();
         subprotocolRegistry = new SubprotocolRegistry(address(note), feeWallet);
-        cidNFT = new CidNFT(
-            "MockCidNFT", 
-            "MCNFT", 
-            BASE_URI, 
-            feeWallet, 
-            address(note), 
-            address(subprotocolRegistry)
-        );
+        cidNFT = new CidNFT("MockCidNFT", "MCNFT", BASE_URI, feeWallet, address(note), address(subprotocolRegistry));
         addressRegistry = new AddressRegistry(address(cidNFT));
-        
+
         sub1 = new SubprotocolNFT();
         sub2 = new SubprotocolNFT();
         sub3 = new SubprotocolNFT();
@@ -96,7 +87,7 @@ contract IntegrationTest is DSTest {
         note.mint(user3, 100000 * 1e18);
         note.mint(alice, 100000 * 1e18);
         note.mint(bob, 100000 * 1e18);
-    
+
         vm.startPrank(user1);
         note.approve(address(subprotocolRegistry), type(uint256).max);
         subprotocolRegistry.register(true, true, true, address(sub1), "sub1", 0);
@@ -111,12 +102,10 @@ contract IntegrationTest is DSTest {
         note.approve(address(subprotocolRegistry), type(uint256).max);
         subprotocolRegistry.register(false, false, true, address(sub3), "sub3", 250);
         vm.stopPrank();
-
     }
 
     function testIntegrationCaseOne() public {
-
-        // Alice mints a CID NFT and registers it in the address registry. 
+        // Alice mints a CID NFT and registers it in the address registry.
 
         uint256 nftIdOne = 1;
 
@@ -130,65 +119,27 @@ contract IntegrationTest is DSTest {
         assertEq(cid, nftIdOne);
 
         //  She then adds some subprotocol NFTs to her CID NFT
-        cidNFT.add(
-            nftIdOne,
-            "sub1",
-            0,
-            1,
-            CidNFT.AssociationType.PRIMARY
-        );
+        cidNFT.add(nftIdOne, "sub1", 0, 1, CidNFT.AssociationType.PRIMARY);
         assertEq(sub1.ownerOf(1), address(cidNFT));
 
-        cidNFT.add(
-            nftIdOne,
-            "sub2",
-            10,
-            2,
-            CidNFT.AssociationType.ORDERED
-        );
+        cidNFT.add(nftIdOne, "sub2", 10, 2, CidNFT.AssociationType.ORDERED);
         assertEq(sub2.ownerOf(2), address(cidNFT));
 
-        cidNFT.add(
-            nftIdOne,
-            "sub3",
-            0,
-            3,
-            CidNFT.AssociationType.ACTIVE
-        );
+        cidNFT.add(nftIdOne, "sub3", 0, 3, CidNFT.AssociationType.ACTIVE);
         assertEq(sub3.ownerOf(3), address(cidNFT));
 
         // She removes them again.
-        cidNFT.remove(
-            nftIdOne,
-            "sub1",
-            0,
-            1,
-            CidNFT.AssociationType.PRIMARY
-        );
+        cidNFT.remove(nftIdOne, "sub1", 0, 1, CidNFT.AssociationType.PRIMARY);
         assertEq(sub1.ownerOf(1), alice);
 
-        cidNFT.remove(
-            nftIdOne,
-            "sub2",
-            10,
-            2,
-            CidNFT.AssociationType.ORDERED
-        );
+        cidNFT.remove(nftIdOne, "sub2", 10, 2, CidNFT.AssociationType.ORDERED);
         assertEq(sub2.ownerOf(2), alice);
 
-        cidNFT.remove(
-            nftIdOne,
-            "sub3",
-            0,
-            3,
-            CidNFT.AssociationType.ACTIVE
-        );
+        cidNFT.remove(nftIdOne, "sub3", 0, 3, CidNFT.AssociationType.ACTIVE);
         assertEq(sub3.ownerOf(3), alice);
-
     }
 
     function testIntegrationCaseTwo() public {
-
         // Bob adds some subprotocol NFTs to his CID NFT that is registered in the address registry.
 
         uint256 nftIdOne = 1;
@@ -202,22 +153,10 @@ contract IntegrationTest is DSTest {
         uint256 cid = addressRegistry.getCID(bob);
         assertEq(cid, nftIdOne);
 
-        cidNFT.add(
-            nftIdOne,
-            "sub1",
-            0,
-            11,
-            CidNFT.AssociationType.PRIMARY
-        );
+        cidNFT.add(nftIdOne, "sub1", 0, 11, CidNFT.AssociationType.PRIMARY);
         assertEq(sub1.ownerOf(11), address(cidNFT));
 
-        cidNFT.add(
-            nftIdOne,
-            "sub2",
-            10,
-            12,
-            CidNFT.AssociationType.ORDERED
-        );
+        cidNFT.add(nftIdOne, "sub2", 10, 12, CidNFT.AssociationType.ORDERED);
         assertEq(sub2.ownerOf(12), address(cidNFT));
 
         // he mints a new CID NFT, registers that one in the address registry
@@ -230,33 +169,13 @@ contract IntegrationTest is DSTest {
         assertEq(cid, nftIdTwo);
 
         // and adds/removes some other subprotocol NFTs.
-        cidNFT.add(
-            nftIdOne,
-            "sub3",
-            0,
-            13,
-            CidNFT.AssociationType.ACTIVE
-        );
+        cidNFT.add(nftIdOne, "sub3", 0, 13, CidNFT.AssociationType.ACTIVE);
         assertEq(sub3.ownerOf(13), address(cidNFT));
 
-        cidNFT.remove(
-            nftIdOne,
-            "sub2",
-            10,
-            12,
-            CidNFT.AssociationType.ORDERED
-        );
+        cidNFT.remove(nftIdOne, "sub2", 10, 12, CidNFT.AssociationType.ORDERED);
         assertEq(sub2.ownerOf(12), bob);
 
-        cidNFT.remove(
-            nftIdOne,
-            "sub3",
-            0,
-            13,
-            CidNFT.AssociationType.ACTIVE
-        );
+        cidNFT.remove(nftIdOne, "sub3", 0, 13, CidNFT.AssociationType.ACTIVE);
         assertEq(sub3.ownerOf(13), bob);
-
     }
-
 }
