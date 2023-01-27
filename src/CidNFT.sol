@@ -191,10 +191,18 @@ contract CidNFT is ERC721, ERC721TokenReceiver {
         }
         if (_type == AssociationType.ORDERED) {
             if (!subprotocolData.ordered) revert AssociationTypeNotSupportedForSubprotocol(_type, _subprotocolName);
+            if (cidData[_cidNFTID][_subprotocolName].ordered[_key] != 0) {
+                // Remove to ensure that user gets NFT back
+                remove(_cidNFTID, _subprotocolName, _key, 0, _type);
+            }
             cidData[_cidNFTID][_subprotocolName].ordered[_key] = _nftIDToAdd;
             emit OrderedDataAdded(_cidNFTID, _subprotocolName, _key, _nftIDToAdd);
         } else if (_type == AssociationType.PRIMARY) {
             if (!subprotocolData.primary) revert AssociationTypeNotSupportedForSubprotocol(_type, _subprotocolName);
+            if (cidData[_cidNFTID][_subprotocolName].primary != 0) {
+                // Remove to ensure that user gets NFT back
+                remove(_cidNFTID, _subprotocolName, 0, 0, _type);
+            }
             cidData[_cidNFTID][_subprotocolName].primary = _nftIDToAdd;
             emit PrimaryDataAdded(_cidNFTID, _subprotocolName, _nftIDToAdd);
         } else if (_type == AssociationType.ACTIVE) {
@@ -229,7 +237,7 @@ contract CidNFT is ERC721, ERC721TokenReceiver {
         uint256 _key,
         uint256 _nftIDToRemove,
         AssociationType _type
-    ) external {
+    ) public {
         SubprotocolRegistry.SubprotocolData memory subprotocolData = subprotocolRegistry.getSubprotocol(
             _subprotocolName
         );

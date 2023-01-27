@@ -526,6 +526,62 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         vm.stopPrank();
     }
 
+    function testOverwritingOrdered() public {
+        address user = user2;
+        vm.startPrank(user);
+
+        // mint two nft for user
+        (uint256 nft1, uint256 nft2) = (101, 102);
+        sub1.mint(user, nft1);
+        sub1.mint(user, nft2);
+        sub1.setApprovalForAll(address(cidNFT), true);
+        // mint CidNFT
+        uint256 cid = cidNFT.numMinted() + 1;
+        cidNFT.mint(new bytes[](0));
+        uint256 key = 111;
+
+        // add nft1 to CidNFT a key
+        cidNFT.add(cid, "sub1", key, nft1, CidNFT.AssociationType.ORDERED);
+        assertEq(sub1.ownerOf(nft1), address(cidNFT));
+        // add nft2 to CidNFT with the same key
+        cidNFT.add(cid, "sub1", key, nft2, CidNFT.AssociationType.ORDERED);
+
+        // nft1 should be transferred back to user
+        assertEq(sub1.ownerOf(nft1), user);
+        // nft2 should still be in protocol
+        assertEq(sub1.ownerOf(nft2), address(cidNFT));
+
+        vm.stopPrank();
+    }
+
+    function testOverWritingPrimary() public {
+        address user = user2;
+        vm.startPrank(user);
+
+        // mint two nft for user
+        (uint256 nft1, uint256 nft2) = (101, 102);
+        sub1.mint(user, nft1);
+        sub1.mint(user, nft2);
+        sub1.setApprovalForAll(address(cidNFT), true);
+        // mint CidNFT
+        uint256 cid = cidNFT.numMinted() + 1;
+        cidNFT.mint(new bytes[](0));
+        // key is useless when adding PRIMARY type
+        uint256 key = 111;
+
+        // add nft1 to CidNFT
+        cidNFT.add(cid, "sub1", key, nft1, CidNFT.AssociationType.PRIMARY);
+        // add nft2 to CidNFT
+        cidNFT.add(cid, "sub1", key, nft2, CidNFT.AssociationType.PRIMARY);
+
+        // nft1 should be transferred back to user
+        assertEq(sub1.ownerOf(nft1), user);
+        // nft2 should still be in protocol
+        assertEq(sub1.ownerOf(nft2), address(cidNFT));
+
+        vm.stopPrank();
+    }
+
     function testAddWithNotEnoughFee() public {
         uint96 subFee = 10 * 1e18;
         vm.startPrank(user1);
