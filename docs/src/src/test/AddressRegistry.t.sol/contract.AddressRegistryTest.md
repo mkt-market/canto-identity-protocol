@@ -1,5 +1,5 @@
 # AddressRegistryTest
-[Git Source](https://github.com/OpenCoreCH/canto-identity-protocol/blob/7f02f16c0527dc1a017305652e7286fe766dc1b6/src/test/AddressRegistry.t.sol)
+[Git Source](https://github.com/mkt-market/canto-identity-protocol/blob/1a16b30b450fe389c483f47dc1621b0d0fe1bd63/src/test/AddressRegistry.t.sol)
 
 **Inherits:**
 DSTest
@@ -34,6 +34,13 @@ AddressRegistry internal addressRegistry;
 ```
 
 
+### cidNFT
+
+```solidity
+CidNFT cidNFT;
+```
+
+
 ## Functions
 ### setUp
 
@@ -42,10 +49,45 @@ AddressRegistry internal addressRegistry;
 function setUp() public;
 ```
 
-### testExample
+### testRegisterNFTCallerNotOwner
 
 
 ```solidity
-function testExample() public;
+function testRegisterNFTCallerNotOwner() public;
+```
+
+### testRegisterNFTCallerIsOwner
+
+
+```solidity
+function testRegisterNFTCallerIsOwner() public;
+```
+
+### testOwnerOverwriteRegisteredCID
+
+
+```solidity
+function testOwnerOverwriteRegisteredCID() public;
+```
+
+### testRemoveWithoutRegister
+
+
+```solidity
+function testRemoveWithoutRegister() public;
+```
+
+### testRemovePriorRegistration
+
+
+```solidity
+function testRemovePriorRegistration() public;
+```
+
+### testRemoveSecondTime
+
+
+```solidity
+function testRemoveSecondTime() public;
 ```
 

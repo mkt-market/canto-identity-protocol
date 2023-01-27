@@ -1,10 +1,37 @@
 # SubprotocolRegistry
-[Git Source](https://github.com/OpenCoreCH/canto-identity-protocol/blob/7f02f16c0527dc1a017305652e7286fe766dc1b6/src/SubprotocolRegistry.sol)
+[Git Source](https://github.com/mkt-market/canto-identity-protocol/blob/1a16b30b450fe389c483f47dc1621b0d0fe1bd63/src/SubprotocolRegistry.sol)
 
 Enables registration of new subprotocols
 
 
 ## State Variables
+### REGISTER_FEE
+Fee for registering a new subprotocol (100 $NOTE)
+
+
+```solidity
+uint256 public constant REGISTER_FEE = 100 * 10 ** 18;
+```
+
+
+### note
+Reference to the $NOTE TOKEN
+
+
+```solidity
+ERC20 public immutable note;
+```
+
+
+### cidFeeWallet
+Wallet that receives fees paid when registering
+
+
+```solidity
+address public immutable cidFeeWallet;
+```
+
+
 ### subprotocols
 Mapping (name => data) that contains all registered subprotocols
 
@@ -15,9 +42,25 @@ mapping(string => SubprotocolData) private subprotocols;
 
 
 ## Functions
+### constructor
+
+Sets the reference to the $NOTE contract
+
+
+```solidity
+constructor(address _noteContract, address _cidFeeWallet);
+```
+**Parameters**
+
+|Name|Type|Description|
+|----|----|-----------|
+|`_noteContract`|`address`|Address of the $NOTE contract|
+|`_cidFeeWallet`|`address`|Address of the wallet that receives the fees|
+
+
 ### register
 
-Register a new subprotocol
+Register a new subprotocol. There is a 100 $NOTE fee when registering
 
 *The options ordered, primary, active are not mutually exclusive. In practice, only one will be set for most subprotocols,
 but if a subprotocol for instance supports int keys (mapped to one value) and a list of active NFTs, ordered and active is true.*

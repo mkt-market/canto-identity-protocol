@@ -1,8 +1,8 @@
 # CidNFT
-[Git Source](https://github.com/OpenCoreCH/canto-identity-protocol/blob/7f02f16c0527dc1a017305652e7286fe766dc1b6/src/CidNFT.sol)
+[Git Source](https://github.com/mkt-market/canto-identity-protocol/blob/1a16b30b450fe389c483f47dc1621b0d0fe1bd63/src/CidNFT.sol)
 
 **Inherits:**
-ERC721
+ERC721, ERC721TokenReceiver
 
 CID NFTs are at the heart of the CID protocol. All key/values of subprotocols are associated with them.
 
@@ -35,21 +35,21 @@ ERC20 public immutable note;
 ```
 
 
-### baseURI
-Base URI of the NFT
-
-
-```solidity
-string public baseURI;
-```
-
-
 ### subprotocolRegistry
 Reference to the subprotocol registry
 
 
 ```solidity
 SubprotocolRegistry public immutable subprotocolRegistry;
+```
+
+
+### baseURI
+Base URI of the NFT
+
+
+```solidity
+string public baseURI;
 ```
 
 
@@ -176,7 +176,7 @@ function remove(
     uint256 _key,
     uint256 _nftIDToRemove,
     AssociationType _type
-) external;
+) public;
 ```
 **Parameters**
 
@@ -291,6 +291,13 @@ function activeDataIncludesNFT(uint256 _cidNFTID, string calldata _subprotocolNa
 |`nftIncluded`|`bool`|True if the NFT ID is in the list|
 
 
+### onERC721Received
+
+
+```solidity
+function onERC721Received(address, address, uint256, bytes calldata) external pure returns (bytes4);
+```
+
 ## Events
 ### OrderedDataAdded
 
@@ -353,6 +360,12 @@ error AddCallAfterMintingFailed(uint256 index);
 error SubprotocolDoesNotExist(string subprotocolName);
 ```
 
+### NFTIDZeroDisallowedForSubprotocols
+
+```solidity
+error NFTIDZeroDisallowedForSubprotocols();
+```
+
 ### AssociationTypeNotSupportedForSubprotocol
 
 ```solidity
@@ -362,7 +375,7 @@ error AssociationTypeNotSupportedForSubprotocol(AssociationType associationType,
 ### NotAuthorizedForCIDNFT
 
 ```solidity
-error NotAuthorizedForCIDNFT(address caller, uint256 cidNFTID);
+error NotAuthorizedForCIDNFT(address caller, uint256 cidNFTID, address cidNFTOwner);
 ```
 
 ### NotAuthorizedForSubprotocolNFT
