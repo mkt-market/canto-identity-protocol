@@ -10,11 +10,15 @@ contract SubprotocolNFT is CidSubprotocolNFT {
         _mint(to, tokenId);
     }
 
-    function isActive(uint256 _nftID) public override returns (bool active) {
+    function isActive(
+        uint256 /*_nftID*/
+    ) public pure override returns (bool active) {
         return true;
     }
 
-    function tokenURI(uint256 id) public view override returns (string memory) {
+    function tokenURI(
+        uint256 /*id*/
+    ) public pure override returns (string memory) {
         return "";
     }
 }
