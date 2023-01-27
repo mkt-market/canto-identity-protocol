@@ -54,8 +54,11 @@ contract CidNFT is ERC721, ERC721TokenReceiver {
 
     /// @notice The different types of associations between CID NFTs and subprotocol NFTs
     enum AssociationType {
+        /// @notice key => NFT mapping
         ORDERED,
+        /// @notice Zero or one NFT
         PRIMARY,
+        /// @notice List of NFTs
         ACTIVE
     }
 
