@@ -23,6 +23,7 @@ contract AddressRegistryTest is DSTest {
 
         cidNFT = new CidNFT("MockCidNFT", "MCNFT", "base_uri/", users[0], address(0), address(0));
         addressRegistry = new AddressRegistry(address(cidNFT));
+        cidNFT.setAddressRegistry(address(addressRegistry));
     }
 
     function testRegisterNFTCallerNotOwner() public {
