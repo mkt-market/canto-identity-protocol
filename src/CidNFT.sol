@@ -5,6 +5,7 @@ import {ERC721, ERC721TokenReceiver} from "solmate/tokens/ERC721.sol";
 import "solmate/tokens/ERC20.sol";
 import "solmate/utils/SafeTransferLib.sol";
 import "./SubprotocolRegistry.sol";
+import "../interface/Turnstile.sol";
 
 /// @title Canto Identity Protocol NFT
 /// @notice CID NFTs are at the heart of the CID protocol. All key/values of subprotocols are associated with them.
@@ -128,6 +129,11 @@ contract CidNFT is ERC721, ERC721TokenReceiver {
         cidFeeWallet = _cidFeeWallet;
         note = ERC20(_noteContract);
         subprotocolRegistry = SubprotocolRegistry(_subprotocolRegistry);
+        if (block.chainid == 7700) {
+            // Register CSR on Canto mainnnet
+            Turnstile turnstile = Turnstile(0xEcf044C5B4b867CFda001101c617eCd347095B44);
+            turnstile.register(tx.origin);
+        }
     }
 
     /// @notice Get the token URI for the provided ID

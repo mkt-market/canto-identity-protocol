@@ -5,6 +5,7 @@ import "solmate/tokens/ERC721.sol";
 import "solmate/tokens/ERC20.sol";
 import "solmate/utils/SafeTransferLib.sol";
 import "./CidSubprotocolNFT.sol";
+import "../interface/Turnstile.sol";
 
 /// @title Subprotocol Registry
 /// @notice Enables registration of new subprotocols
@@ -65,6 +66,11 @@ contract SubprotocolRegistry {
     constructor(address _noteContract, address _cidFeeWallet) {
         note = ERC20(_noteContract);
         cidFeeWallet = _cidFeeWallet;
+        if (block.chainid == 7700) {
+            // Register CSR on Canto mainnnet
+            Turnstile turnstile = Turnstile(0xEcf044C5B4b867CFda001101c617eCd347095B44);
+            turnstile.register(tx.origin);
+        }
     }
 
     /// @notice Register a new subprotocol. There is a 100 $NOTE fee when registering
