@@ -4,7 +4,6 @@ pragma solidity >=0.8.0;
 import "solmate/tokens/ERC721.sol";
 import "solmate/tokens/ERC20.sol";
 import "solmate/utils/SafeTransferLib.sol";
-import "./CidSubprotocolNFT.sol";
 import "../interface/Turnstile.sol";
 
 /// @title Subprotocol Registry
@@ -58,7 +57,6 @@ contract SubprotocolRegistry {
     //////////////////////////////////////////////////////////////*/
     error SubprotocolAlreadyExists(string name, address owner);
     error NoTypeSpecified(string name);
-    error NotASubprotocolNFT(address nftAddress);
 
     /// @notice Sets the reference to the $NOTE contract
     /// @param _noteContract Address of the $NOTE contract
@@ -80,7 +78,7 @@ contract SubprotocolRegistry {
     /// @param _primary Primary maps to zero or one value
     /// @param _active Subprotocols that have a list of a active NFTs
     /// @param _name Name of the subprotocol, has to be unique
-    /// @param _nftAddress Address of the subprotocol NFT. Has to adhere to the CidSubprotocolNFT interface
+    /// @param _nftAddress Address of the subprotocol NFT.
     /// @param _fee Fee (in $NOTE) for minting a new token of the subprotocol. Set to 0 if there is no fee. 10% is subtracted from this fee as a CID fee
     function register(
         bool _ordered,
@@ -96,8 +94,6 @@ contract SubprotocolRegistry {
         if (subprotocolData.owner != address(0)) revert SubprotocolAlreadyExists(_name, subprotocolData.owner);
         subprotocolData.owner = msg.sender;
         subprotocolData.fee = _fee;
-        if (!ERC721(_nftAddress).supportsInterface(type(CidSubprotocolNFT).interfaceId))
-            revert NotASubprotocolNFT(_nftAddress);
         subprotocolData.nftAddress = _nftAddress;
         subprotocolData.ordered = _ordered;
         subprotocolData.primary = _primary;

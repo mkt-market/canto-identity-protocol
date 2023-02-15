@@ -1,19 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-only
+import {ERC721} from "solmate/tokens/ERC721.sol";
+
 pragma solidity >=0.8.0;
 
-import "../../CidSubprotocolNFT.sol";
-
-contract SubprotocolNFT is CidSubprotocolNFT {
+contract SubprotocolNFT is ERC721 {
     constructor() ERC721("MockNFT", "MNFT") {}
 
     function mint(address to, uint256 tokenId) public {
         _mint(to, tokenId);
-    }
-
-    function isActive(
-        uint256 /*_nftID*/
-    ) public pure override returns (bool active) {
-        return true;
     }
 
     function tokenURI(
