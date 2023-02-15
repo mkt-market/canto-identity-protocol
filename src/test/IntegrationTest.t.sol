@@ -110,7 +110,7 @@ contract IntegrationTest is DSTest {
         uint256 nftIdOne = 1;
 
         vm.startPrank(alice);
-        bytes[] memory addList;
+        CidNFT.MintAddData[] memory addList;
         cidNFT.mint(addList);
 
         addressRegistry.register(nftIdOne);
@@ -145,7 +145,7 @@ contract IntegrationTest is DSTest {
         uint256 nftIdOne = 1;
 
         vm.startPrank(bob);
-        bytes[] memory addList;
+        CidNFT.MintAddData[] memory addList;
         cidNFT.mint(addList);
 
         addressRegistry.register(nftIdOne);

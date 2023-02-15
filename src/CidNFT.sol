@@ -75,6 +75,14 @@ contract CidNFT is ERC721, ERC721TokenReceiver, Owned {
     /// @notice Stores the references to subprotocol NFTs. Mapping nftID => subprotocol name => subprotocol data
     mapping(uint256 => mapping(string => SubprotocolData)) internal cidData;
 
+    /// @notice Data that is passed to mint to directly add associations to the minted CID NFT
+    struct MintAddData {
+        string subprotocolName;
+        uint256 key;
+        uint256 nftIDToAdd;
+        AssociationType associationType;
+    }
+
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -104,7 +112,6 @@ contract CidNFT is ERC721, ERC721TokenReceiver, Owned {
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
     error TokenNotMinted(uint256 tokenID);
-    error AddCallAfterMintingFailed(uint256 index);
     error SubprotocolDoesNotExist(string subprotocolName);
     error NFTIDZeroDisallowedForSubprotocols();
     error AssociationTypeNotSupportedForSubprotocol(AssociationType associationType, string subprotocolName);
@@ -153,17 +160,13 @@ contract CidNFT is ERC721, ERC721TokenReceiver, Owned {
 
     /// @notice Mint a new CID NFT
     /// @dev An address can mint multiple CID NFTs, but it can only set one as associated with it in the AddressRegistry
-    /// @param _addList An optional list of encoded parameters for add to add subprotocol NFTs directly after minting.
-    /// The parameters should not include the function selector itself, the function select for add is always prepended.
-    function mint(bytes[] calldata _addList) external {
-        _mint(msg.sender, ++numMinted); // We do not use _safeMint here on purpose. If a contract calls this method, he expects to get an NFT back
-        bytes4 addSelector = this.add.selector;
+    /// @param _addList An optional list of parameters for add to add subprotocol NFTs directly after minting.
+    function mint(MintAddData[] calldata _addList) external {
+        uint256 tokenToMint = ++numMinted;
+        _mint(msg.sender, tokenToMint); // We do not use _safeMint here on purpose. If a contract calls this method, he expects to get an NFT back
         for (uint256 i = 0; i < _addList.length; ++i) {
-            (
-                bool success, /*bytes memory result*/
-
-            ) = address(this).delegatecall(abi.encodePacked(addSelector, _addList[i]));
-            if (!success) revert AddCallAfterMintingFailed(i);
+            MintAddData calldata addData = _addList[i];
+            add(tokenToMint, addData.subprotocolName, addData.key, addData.nftIDToAdd, addData.associationType);
         }
     }
 
@@ -179,7 +182,7 @@ contract CidNFT is ERC721, ERC721TokenReceiver, Owned {
         uint256 _key,
         uint256 _nftIDToAdd,
         AssociationType _type
-    ) external {
+    ) public {
         SubprotocolRegistry.SubprotocolData memory subprotocolData = subprotocolRegistry.getSubprotocol(
             _subprotocolName
         );

@@ -81,7 +81,7 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
 
     function testRemoveNonExistingSubprotocol() public {
         uint256 tokenId = cidNFT.numMinted() + 1;
-        cidNFT.mint(new bytes[](0));
+        cidNFT.mint(new CidNFT.MintAddData[](0));
         // Should revert if remove with non-existing subprotocol
         vm.expectRevert(abi.encodeWithSelector(CidNFT.SubprotocolDoesNotExist.selector, "NonExisting"));
         cidNFT.remove(tokenId, "NonExisting", 1, 1, CidNFT.AssociationType.ORDERED);
@@ -89,7 +89,7 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
 
     function testCannotRemoveNonExistingEntry() public {
         uint256 tokenId = cidNFT.numMinted() + 1;
-        cidNFT.mint(new bytes[](0));
+        cidNFT.mint(new CidNFT.MintAddData[](0));
 
         // NFT id that does not exist
         uint256 nftIDToRemove = 1;
@@ -103,7 +103,7 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
 
     function testCannotRemoveWhenOrderedOrActiveNotSet() public {
         uint256 tokenId = cidNFT.numMinted() + 1;
-        cidNFT.mint(new bytes[](0));
+        cidNFT.mint(new CidNFT.MintAddData[](0));
 
         uint256 key = 1;
 
@@ -118,13 +118,13 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
 
     function testMintWithoutAddList() public {
         // mint by this
-        cidNFT.mint(new bytes[](0));
+        cidNFT.mint(new CidNFT.MintAddData[](0));
         uint256 tokenId = cidNFT.numMinted();
         assertEq(cidNFT.ownerOf(tokenId), address(this));
 
         // mint by user1
         vm.startPrank(user1);
-        cidNFT.mint(new bytes[](0));
+        cidNFT.mint(new CidNFT.MintAddData[](0));
         tokenId = cidNFT.numMinted();
         assertEq(cidNFT.ownerOf(tokenId), user1);
         vm.stopPrank();
@@ -141,8 +141,8 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         sub1.mint(address(this), subId);
         sub1.setApprovalForAll(address(cidNFT), true);
 
-        bytes[] memory addList = new bytes[](1);
-        addList[0] = abi.encode(tokenId, "sub1", 0, subId, CidNFT.AssociationType.ORDERED);
+        CidNFT.MintAddData[] memory addList = new CidNFT.MintAddData[](1);
+        addList[0] = CidNFT.MintAddData("sub1", 0, subId, CidNFT.AssociationType.ORDERED);
         cidNFT.mint(addList);
         // confirm mint
         assertEq(cidNFT.ownerOf(tokenId), address(this));
@@ -151,7 +151,7 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
     function testMintWithMultiAddItems() public {
         // add for other token id
         uint256 prevTokenId = cidNFT.numMinted() + 1;
-        cidNFT.mint(new bytes[](0));
+        cidNFT.mint(new CidNFT.MintAddData[](0));
         uint256 tokenId = cidNFT.numMinted() + 1;
 
         // mint in subprotocol
@@ -165,17 +165,17 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         sub2.setApprovalForAll(address(cidNFT), true);
         (uint256 key1, uint256 key2) = (0, 1);
 
-        bytes[] memory addList = new bytes[](3);
-        addList[0] = abi.encode(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
-        addList[1] = abi.encode(tokenId, "sub2", key2, sub2Id, CidNFT.AssociationType.ORDERED);
-        addList[2] = abi.encode(prevTokenId, "sub2", 0, prevPrimaryId, CidNFT.AssociationType.PRIMARY);
+        CidNFT.MintAddData[] memory addList = new CidNFT.MintAddData[](3);
+        addList[0] = CidNFT.MintAddData("sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
+        addList[1] = CidNFT.MintAddData("sub2", key2, sub2Id, CidNFT.AssociationType.ORDERED);
+        addList[2] = CidNFT.MintAddData("sub2", 0, prevPrimaryId, CidNFT.AssociationType.PRIMARY);
         cidNFT.mint(addList);
         // confirm mint
         assertEq(cidNFT.ownerOf(tokenId), address(this));
         // confirm data
         assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
         assertEq(cidNFT.getOrderedData(tokenId, "sub2", key2), sub2Id);
-        assertEq(cidNFT.getPrimaryData(prevTokenId, "sub2"), prevPrimaryId);
+        assertEq(cidNFT.getPrimaryData(tokenId, "sub2"), prevPrimaryId);
     }
 
     function testMintWithMultiAddItemsAndRevert() public {
@@ -191,12 +191,12 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         // sub2.approve(address(cidNFT), sub2Id);
         (uint256 key1, uint256 key2) = (0, 1);
 
-        bytes[] memory addList = new bytes[](2);
-        addList[0] = abi.encode(tokenId, "sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
-        addList[1] = abi.encode(tokenId, "sub2", key2, sub2Id, CidNFT.AssociationType.ORDERED);
+        CidNFT.MintAddData[] memory addList = new CidNFT.MintAddData[](2);
+        addList[0] = CidNFT.MintAddData("sub1", key1, sub1Id, CidNFT.AssociationType.ORDERED);
+        addList[1] = CidNFT.MintAddData("sub2", key2, sub2Id, CidNFT.AssociationType.ORDERED);
 
         // revert by add[1]
-        vm.expectRevert(abi.encodeWithSelector(CidNFT.AddCallAfterMintingFailed.selector, 1));
+        vm.expectRevert("NOT_AUTHORIZED");
         cidNFT.mint(addList);
         // tokenId of CidNFT is not minted
         vm.expectRevert("NOT_MINTED");
@@ -223,7 +223,7 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         vm.expectRevert("NOT_MINTED");
         cidNFT.ownerOf(tokenId);
         vm.prank(cidOwner);
-        cidNFT.mint(new bytes[](0));
+        cidNFT.mint(new CidNFT.MintAddData[](0));
 
         // mint in subprotocol
         sub1Id = tokenId;
@@ -458,7 +458,7 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         vm.startPrank(user);
         // mint without add
         tokenId = cidNFT.numMinted() + 1;
-        cidNFT.mint(new bytes[](0));
+        cidNFT.mint(new CidNFT.MintAddData[](0));
 
         // prepare subprotocol NFTs
         subIds = new uint256[](count);
@@ -540,7 +540,7 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         sub1.setApprovalForAll(address(cidNFT), true);
         // mint CidNFT
         uint256 cid = cidNFT.numMinted() + 1;
-        cidNFT.mint(new bytes[](0));
+        cidNFT.mint(new CidNFT.MintAddData[](0));
         uint256 key = 111;
 
         // add nft1 to CidNFT a key
@@ -568,7 +568,7 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         sub1.setApprovalForAll(address(cidNFT), true);
         // mint CidNFT
         uint256 cid = cidNFT.numMinted() + 1;
-        cidNFT.mint(new bytes[](0));
+        cidNFT.mint(new CidNFT.MintAddData[](0));
         // key is useless when adding PRIMARY type
         uint256 key = 111;
 
@@ -636,9 +636,9 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         uint256 id2 = cidNFT.numMinted() + 2;
         uint256 nonExistId = cidNFT.numMinted() + 3;
         // mint id1
-        cidNFT.mint(new bytes[](0));
+        cidNFT.mint(new CidNFT.MintAddData[](0));
         // mint id2
-        cidNFT.mint(new bytes[](0));
+        cidNFT.mint(new CidNFT.MintAddData[](0));
 
         // exist id
         assertEq(cidNFT.tokenURI(id1), string(abi.encodePacked(BASE_URI, id1, ".json")));

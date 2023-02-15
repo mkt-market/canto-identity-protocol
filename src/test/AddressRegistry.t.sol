@@ -33,7 +33,7 @@ contract AddressRegistryTest is DSTest {
 
         // owner mint NFT
         vm.prank(owner);
-        bytes[] memory addList;
+        CidNFT.MintAddData[] memory addList;
         cidNFT.mint(addList);
         assertEq(cidNFT.ownerOf(nftIdOne), owner);
 
@@ -49,7 +49,7 @@ contract AddressRegistryTest is DSTest {
 
         // owner mint NFT
         vm.startPrank(owner);
-        bytes[] memory addList;
+        CidNFT.MintAddData[] memory addList;
         cidNFT.mint(addList);
         assertEq(cidNFT.ownerOf(nftIdOne), owner);
 
@@ -68,7 +68,7 @@ contract AddressRegistryTest is DSTest {
 
         // owner mint NFT
         vm.startPrank(owner);
-        bytes[] memory addList;
+        CidNFT.MintAddData[] memory addList;
         cidNFT.mint(addList);
         assertEq(cidNFT.ownerOf(nftIdOne), owner);
 
@@ -101,7 +101,7 @@ contract AddressRegistryTest is DSTest {
 
         // owner mint NFT
         vm.startPrank(owner);
-        bytes[] memory addList;
+        CidNFT.MintAddData[] memory addList;
         cidNFT.mint(addList);
         assertEq(cidNFT.ownerOf(nftIdOne), owner);
 
@@ -124,7 +124,7 @@ contract AddressRegistryTest is DSTest {
 
         // owner mint NFT
         vm.startPrank(owner);
-        bytes[] memory addList;
+        CidNFT.MintAddData[] memory addList;
         cidNFT.mint(addList);
         assertEq(cidNFT.ownerOf(nftIdOne), owner);
 
