@@ -140,7 +140,7 @@ contract CidNFT is ERC721, ERC721TokenReceiver {
     /// @param _id ID to retrieve the URI for
     /// @return tokenURI The URI of the queried token (path to a JSON file)
     function tokenURI(uint256 _id) public view override returns (string memory) {
-        if (ownerOf[_id] == address(0))
+        if (_ownerOf[_id] == address(0))
             // According to ERC721, this revert for non-existing tokens is required
             revert TokenNotMinted(_id);
         return string(abi.encodePacked(baseURI, _id, ".json"));
@@ -180,7 +180,7 @@ contract CidNFT is ERC721, ERC721TokenReceiver {
         );
         address subprotocolOwner = subprotocolData.owner;
         if (subprotocolOwner == address(0)) revert SubprotocolDoesNotExist(_subprotocolName);
-        address cidNFTOwner = ownerOf[_cidNFTID];
+        address cidNFTOwner = _ownerOf[_cidNFTID];
         if (
             cidNFTOwner != msg.sender &&
             getApproved[_cidNFTID] != msg.sender &&
@@ -252,7 +252,7 @@ contract CidNFT is ERC721, ERC721TokenReceiver {
         );
         address subprotocolOwner = subprotocolData.owner;
         if (subprotocolOwner == address(0)) revert SubprotocolDoesNotExist(_subprotocolName);
-        address cidNFTOwner = ownerOf[_cidNFTID];
+        address cidNFTOwner = _ownerOf[_cidNFTID];
         if (
             cidNFTOwner != msg.sender &&
             getApproved[_cidNFTID] != msg.sender &&
@@ -347,7 +347,7 @@ contract CidNFT is ERC721, ERC721TokenReceiver {
         address, /*from*/
         uint256, /*id*/
         bytes calldata /*data*/
-    ) external pure returns (bytes4) {
+    ) external pure override returns (bytes4) {
         return ERC721TokenReceiver.onERC721Received.selector;
     }
 }
