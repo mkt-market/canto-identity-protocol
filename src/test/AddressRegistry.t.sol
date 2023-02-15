@@ -143,4 +143,50 @@ contract AddressRegistryTest is DSTest {
         vm.expectRevert(abi.encodeWithSelector(AddressRegistry.NoCIDNFTRegisteredForUser.selector, owner));
         addressRegistry.remove();
     }
+
+    function testTransferRemoveNFT() public {
+        uint256 nftIdOne = 1;
+        address owner = users[0];
+
+        // owner mint NFT
+        vm.startPrank(owner);
+        CidNFT.MintAddData[] memory addList;
+        cidNFT.mint(addList);
+        assertEq(cidNFT.ownerOf(nftIdOne), owner);
+
+        // owner trys to register nft, succeed
+        addressRegistry.register(nftIdOne);
+
+        // validate the regisered CID
+        uint256 cid = addressRegistry.getCID(owner);
+        assertEq(cid, nftIdOne);
+
+        cidNFT.transferFrom(owner, users[1], nftIdOne);
+        assertEq(addressRegistry.getCID(owner), 0);
+        assertEq(addressRegistry.getCID(users[1]), 0);
+    }
+
+    function testTransferDifferentNFTDoNotRemove() public {
+        uint256 nftIdOne = 1;
+        uint256 nftIdTwo = 2;
+        address owner = users[0];
+
+        // owner mint NFT
+        vm.startPrank(owner);
+        CidNFT.MintAddData[] memory addList;
+        cidNFT.mint(addList);
+        cidNFT.mint(addList);
+        assertEq(cidNFT.ownerOf(nftIdOne), owner);
+        assertEq(cidNFT.ownerOf(nftIdTwo), owner);
+
+        // owner trys to register nft, succeed
+        addressRegistry.register(nftIdOne);
+
+        // validate the regisered CID
+        uint256 cid = addressRegistry.getCID(owner);
+        assertEq(cid, nftIdOne);
+
+        cidNFT.transferFrom(owner, users[1], nftIdTwo);
+        assertEq(addressRegistry.getCID(owner), nftIdOne);
+    }
 }
