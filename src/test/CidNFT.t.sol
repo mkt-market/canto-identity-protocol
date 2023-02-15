@@ -133,7 +133,8 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
     function testMintWithSingleAddList() public {
         uint256 tokenId = cidNFT.numMinted() + 1;
         // tokenId not minted yet
-        assertEq(cidNFT.ownerOf(tokenId), address(0));
+        vm.expectRevert("NOT_MINTED");
+        cidNFT.ownerOf(tokenId);
 
         // mint in subprotocol
         uint256 subId = tokenId;
@@ -198,7 +199,8 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         vm.expectRevert(abi.encodeWithSelector(CidNFT.AddCallAfterMintingFailed.selector, 1));
         cidNFT.mint(addList);
         // tokenId of CidNFT is not minted
-        assertEq(cidNFT.ownerOf(tokenId), address(0));
+        vm.expectRevert("NOT_MINTED");
+        cidNFT.ownerOf(tokenId);
         // confirm data - not added
         assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), 0);
         assertEq(cidNFT.getOrderedData(tokenId, "sub2", key2), 0);
@@ -218,7 +220,8 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         // mint without add
         tokenId = cidNFT.numMinted() + 1;
 
-        assertEq(cidNFT.ownerOf(tokenId), address(0));
+        vm.expectRevert("NOT_MINTED");
+        cidNFT.ownerOf(tokenId);
         vm.prank(cidOwner);
         cidNFT.mint(new bytes[](0));
 
@@ -591,8 +594,7 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         (uint256 tokenId, uint256 subId, uint256 key) = prepareAddOne(user2, user2);
         vm.startPrank(user2);
         note.approve(address(cidNFT), type(uint256).max);
-        // revert for "Arithmetic over/underflow"
-        vm.expectRevert(stdError.arithmeticError);
+        vm.expectRevert("TRANSFER_FROM_FAILED");
         cidNFT.add(tokenId, "SubWithFee", key, subId, CidNFT.AssociationType.ORDERED);
         vm.stopPrank();
     }
@@ -652,7 +654,7 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         address, /*from*/
         uint256, /*id*/
         bytes calldata /*data*/
-    ) external pure returns (bytes4) {
+    ) external pure override returns (bytes4) {
         return ERC721TokenReceiver.onERC721Received.selector;
     }
 }
