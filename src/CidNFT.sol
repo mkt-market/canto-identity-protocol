@@ -368,13 +368,6 @@ contract CidNFT is ERC721, ERC721TokenReceiver, Owned {
         addressRegistry.removeOnTransfer(from, id);
     }
 
-    /// @notice Override _burn to deregister CID NFT in address registry if registered
-    function _burn(uint256 id) internal override {
-        address currentOwner = _ownerOf[id];
-        super._burn(id);
-        addressRegistry.removeOnTransfer(currentOwner, id);
-    }
-
     function onERC721Received(
         address, /*operator*/
         address, /*from*/
