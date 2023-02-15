@@ -17,6 +17,8 @@ contract AddressRegistryTest is DSTest {
 
     CidNFT cidNFT;
 
+    event CIDNFTRemoved(address indexed user, uint256 indexed cidNFTID);
+
     function setUp() public {
         utils = new Utilities();
         users = utils.createUsers(5);
@@ -161,6 +163,8 @@ contract AddressRegistryTest is DSTest {
         uint256 cid = addressRegistry.getCID(owner);
         assertEq(cid, nftIdOne);
 
+        vm.expectEmit(true, true, true, true);
+        emit CIDNFTRemoved(users[0], nftIdOne);
         cidNFT.transferFrom(owner, users[1], nftIdOne);
         assertEq(addressRegistry.getCID(owner), 0);
         assertEq(addressRegistry.getCID(users[1]), 0);
@@ -188,5 +192,12 @@ contract AddressRegistryTest is DSTest {
 
         cidNFT.transferFrom(owner, users[1], nftIdTwo);
         assertEq(addressRegistry.getCID(owner), nftIdOne);
+    }
+
+    function testRemoveOnTransferNotCallableByUser() public {
+        vm.expectRevert(abi.encodeWithSelector(AddressRegistry.RemoveOnTransferOnlyCallableByCIDNFT.selector));
+        addressRegistry.removeOnTransfer(users[0], 1);
+        vm.prank(address(cidNFT));
+        addressRegistry.removeOnTransfer(users[0], 1);
     }
 }
