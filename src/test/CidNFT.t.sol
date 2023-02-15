@@ -668,7 +668,14 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
     }
 
     function testCallingSetAddressRegistryFromNonOwner() public {
-        CidNFT cidNFT2 = new CidNFT("MockCidNFT2", "MCNFT2", BASE_URI, feeWallet, address(note), address(subprotocolRegistry));
+        CidNFT cidNFT2 = new CidNFT(
+            "MockCidNFT2",
+            "MCNFT2",
+            BASE_URI,
+            feeWallet,
+            address(note),
+            address(subprotocolRegistry)
+        );
         vm.prank(user1);
         vm.expectRevert("UNAUTHORIZED");
         cidNFT2.setAddressRegistry(address(0));
