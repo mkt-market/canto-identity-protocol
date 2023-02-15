@@ -639,8 +639,8 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         cidNFT.mint(new bytes[](0));
 
         // exist id
-        assertEq(cidNFT.tokenURI(id1), string(abi.encodePacked(BASE_URI, id1, ".json")));
-        assertEq(cidNFT.tokenURI(id2), string(abi.encodePacked(BASE_URI, id2, ".json")));
+        assertEq(cidNFT.tokenURI(id1), BASE_URI);
+        assertEq(cidNFT.tokenURI(id2), BASE_URI);
 
         // non-exist id
         vm.expectRevert(abi.encodeWithSelector(CidNFT.TokenNotMinted.selector, nonExistId));
