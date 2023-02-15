@@ -9,6 +9,7 @@ import {Utilities} from "./utils/Utilities.sol";
 import {console} from "./utils/Console.sol";
 import "../CidNFT.sol";
 import "../SubprotocolRegistry.sol";
+import "../AddressRegistry.sol";
 import "./mock/MockERC20.sol";
 import "./mock/SubprotocolNFT.sol";
 
@@ -56,6 +57,8 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         note = new MockToken();
         subprotocolRegistry = new SubprotocolRegistry(address(note), feeWallet);
         cidNFT = new CidNFT("MockCidNFT", "MCNFT", BASE_URI, feeWallet, address(note), address(subprotocolRegistry));
+        AddressRegistry addressRegistry = new AddressRegistry(address(cidNFT));
+        cidNFT.setAddressRegistry(address(addressRegistry));
         sub1 = new SubprotocolNFT();
         sub2 = new SubprotocolNFT();
 
@@ -647,6 +650,21 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         // non-exist id
         vm.expectRevert(abi.encodeWithSelector(CidNFT.TokenNotMinted.selector, nonExistId));
         cidNFT.tokenURI(nonExistId);
+    }
+
+    function testTransferWithoutRegistered() public {
+        // mint by this
+        cidNFT.mint(new CidNFT.MintAddData[](0));
+        uint256 tokenId = cidNFT.numMinted();
+        assertEq(cidNFT.ownerOf(tokenId), address(this));
+
+        // mint by user1
+        vm.startPrank(user1);
+        cidNFT.mint(new CidNFT.MintAddData[](0));
+        tokenId = cidNFT.numMinted();
+        assertEq(cidNFT.ownerOf(tokenId), user1);
+        cidNFT.transferFrom(user1, user2, tokenId);
+        vm.stopPrank();
     }
 
     function onERC721Received(
