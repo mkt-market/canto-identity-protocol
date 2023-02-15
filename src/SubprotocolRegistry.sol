@@ -77,7 +77,7 @@ contract SubprotocolRegistry {
     /// @dev The options ordered, primary, active are not mutually exclusive. In practice, only one will be set for most subprotocols,
     /// but if a subprotocol for instance supports int keys (mapped to one value) and a list of active NFTs, ordered and active is true.
     /// @param _ordered Ordering allows integers to be used as map keys, to one and only one value
-    /// @param _primary Primary maps string keys to zero or one value
+    /// @param _primary Primary maps to zero or one value
     /// @param _active Subprotocols that have a list of a active NFTs
     /// @param _name Name of the subprotocol, has to be unique
     /// @param _nftAddress Address of the subprotocol NFT. Has to adhere to the CidSubprotocolNFT interface
