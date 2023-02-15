@@ -105,4 +105,12 @@ contract SubprotocolRegistryTest is DSTest {
         vm.expectRevert(abi.encodeWithSelector(SubprotocolRegistry.NoTypeSpecified.selector, name));
         subprotocolRegistry.register(false, false, false, address(subprotocolNFT), name, 0);
     }
+
+    function testRegisterNotSubprotocolCompliantNFT() public {
+        vm.startPrank(user1);
+        string memory name = "subprotocol1";
+        NotCompliantNFT notCompliantNFT = new NotCompliantNFT();
+        vm.expectRevert(abi.encodeWithSelector(SubprotocolRegistry.NotANFT.selector, address(notCompliantNFT)));
+        subprotocolRegistry.register(true, false, false, address(notCompliantNFT), name, 0);
+    }
 }

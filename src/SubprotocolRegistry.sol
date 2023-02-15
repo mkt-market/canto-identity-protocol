@@ -57,6 +57,7 @@ contract SubprotocolRegistry {
     //////////////////////////////////////////////////////////////*/
     error SubprotocolAlreadyExists(string name, address owner);
     error NoTypeSpecified(string name);
+    error NotANFT(address passedAddress);
 
     /// @notice Sets the reference to the $NOTE contract
     /// @param _noteContract Address of the $NOTE contract
@@ -94,6 +95,7 @@ contract SubprotocolRegistry {
         if (subprotocolData.owner != address(0)) revert SubprotocolAlreadyExists(_name, subprotocolData.owner);
         subprotocolData.owner = msg.sender;
         subprotocolData.fee = _fee;
+        if (!ERC721(_nftAddress).supportsInterface(0x80ac58cd)) revert NotANFT(_nftAddress);
         subprotocolData.nftAddress = _nftAddress;
         subprotocolData.ordered = _ordered;
         subprotocolData.primary = _primary;

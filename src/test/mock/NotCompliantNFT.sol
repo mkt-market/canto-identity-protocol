@@ -11,4 +11,8 @@ contract NotCompliantNFT is ERC721 {
     ) public pure override returns (string memory) {
         return "";
     }
+
+    function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
+        return false;
+    }
 }
