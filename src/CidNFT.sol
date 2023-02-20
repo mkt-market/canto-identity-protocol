@@ -271,13 +271,13 @@ contract CidNFT is ERC721, ERC721TokenReceiver {
                 revert OrderedValueNotSet(_cidNFTID, _subprotocolName, _key);
             delete cidData[_cidNFTID][_subprotocolName].ordered[_key];
             nftToRemove.safeTransferFrom(address(this), msg.sender, currNFTID);
-            emit OrderedDataRemoved(_cidNFTID, _subprotocolName, _key, _nftIDToRemove);
+            emit OrderedDataRemoved(_cidNFTID, _subprotocolName, _key, currNFTID);
         } else if (_type == AssociationType.PRIMARY) {
             uint256 currNFTID = cidData[_cidNFTID][_subprotocolName].primary;
             if (currNFTID == 0) revert PrimaryValueNotSet(_cidNFTID, _subprotocolName);
             delete cidData[_cidNFTID][_subprotocolName].primary;
             nftToRemove.safeTransferFrom(address(this), msg.sender, currNFTID);
-            emit PrimaryDataRemoved(_cidNFTID, _subprotocolName, _nftIDToRemove);
+            emit PrimaryDataRemoved(_cidNFTID, _subprotocolName, currNFTID);
         } else if (_type == AssociationType.ACTIVE) {
             IndexedArray storage activeData = cidData[_cidNFTID][_subprotocolName].active;
             uint256 arrayPosition = activeData.positions[_nftIDToRemove]; // Index + 1, 0 if non-existant
