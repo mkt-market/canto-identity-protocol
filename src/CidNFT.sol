@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity >=0.8.0;
 
-import {ERC721, ERC721TokenReceiver} from "solmate/tokens/ERC721.sol";
+import {ERC721} from "solmate/tokens/ERC721.sol";
 import "solmate/tokens/ERC20.sol";
 import "solmate/utils/SafeTransferLib.sol";
 import "./SubprotocolRegistry.sol";
@@ -9,7 +9,7 @@ import "../interface/Turnstile.sol";
 
 /// @title Canto Identity Protocol NFT
 /// @notice CID NFTs are at the heart of the CID protocol. All key/values of subprotocols are associated with them.
-contract CidNFT is ERC721, ERC721TokenReceiver {
+contract CidNFT is ERC721 {
     /*//////////////////////////////////////////////////////////////
                                  CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -193,7 +193,7 @@ contract CidNFT is ERC721, ERC721TokenReceiver {
 
         // The CID Protocol safeguards the NFTs of subprotocols. Note that these NFTs are usually pointers to other data / NFTs (e.g., to an image NFT for profile pictures)
         ERC721 nftToAdd = ERC721(subprotocolData.nftAddress);
-        nftToAdd.safeTransferFrom(msg.sender, address(this), _nftIDToAdd);
+        nftToAdd.transferFrom(msg.sender, address(this), _nftIDToAdd);
         // Charge fee (subprotocol & CID fee) if configured
         uint96 subprotocolFee = subprotocolData.fee;
         if (subprotocolFee != 0) {
@@ -270,13 +270,13 @@ contract CidNFT is ERC721, ERC721TokenReceiver {
                 // This check is technically not necessary (because the NFT transfer would fail), but we include it to have more meaningful errors
                 revert OrderedValueNotSet(_cidNFTID, _subprotocolName, _key);
             delete cidData[_cidNFTID][_subprotocolName].ordered[_key];
-            nftToRemove.safeTransferFrom(address(this), msg.sender, currNFTID);
+            nftToRemove.transferFrom(address(this), msg.sender, currNFTID); // Use transferFrom here to prevent reentrancy possibility when remove is called from add
             emit OrderedDataRemoved(_cidNFTID, _subprotocolName, _key, currNFTID);
         } else if (_type == AssociationType.PRIMARY) {
             uint256 currNFTID = cidData[_cidNFTID][_subprotocolName].primary;
             if (currNFTID == 0) revert PrimaryValueNotSet(_cidNFTID, _subprotocolName);
             delete cidData[_cidNFTID][_subprotocolName].primary;
-            nftToRemove.safeTransferFrom(address(this), msg.sender, currNFTID);
+            nftToRemove.transferFrom(address(this), msg.sender, currNFTID);
             emit PrimaryDataRemoved(_cidNFTID, _subprotocolName, currNFTID);
         } else if (_type == AssociationType.ACTIVE) {
             IndexedArray storage activeData = cidData[_cidNFTID][_subprotocolName].active;
@@ -291,7 +291,7 @@ contract CidNFT is ERC721, ERC721TokenReceiver {
             }
             activeData.values.pop();
             activeData.positions[_nftIDToRemove] = 0;
-            nftToRemove.safeTransferFrom(address(this), msg.sender, _nftIDToRemove);
+            nftToRemove.transferFrom(address(this), msg.sender, _nftIDToRemove);
             emit ActiveDataRemoved(_cidNFTID, _subprotocolName, _nftIDToRemove);
         }
     }
@@ -343,14 +343,5 @@ contract CidNFT is ERC721, ERC721TokenReceiver {
         uint256 _nftIDToCheck
     ) external view returns (bool nftIncluded) {
         nftIncluded = cidData[_cidNFTID][_subprotocolName].active.positions[_nftIDToCheck] != 0;
-    }
-
-    function onERC721Received(
-        address, /*operator*/
-        address, /*from*/
-        uint256, /*id*/
-        bytes calldata /*data*/
-    ) external pure override returns (bytes4) {
-        return ERC721TokenReceiver.onERC721Received.selector;
     }
 }
