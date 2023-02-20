@@ -16,7 +16,7 @@ contract CidNFT is ERC721, Owned {
                                  CONSTANTS
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Fee (in BPS) that is charged for every mint (as a percentage of the mint fee). Fixed at 10%.
+    /// @notice Fee (in BPS) that is charged for every add call (as a percentage of the subprotocol fee). Fixed at 10%.
     uint256 public constant CID_FEE_BPS = 1_000;
 
     /*//////////////////////////////////////////////////////////////

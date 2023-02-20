@@ -7,7 +7,6 @@ import {console} from "./utils/Console.sol";
 import {Vm} from "forge-std/Vm.sol";
 import "../AddressRegistry.sol";
 import "../SubprotocolRegistry.sol";
-import "../CidSubprotocolNFT.sol";
 import "./mock/MockERC20.sol";
 import "./mock/SubprotocolNFT.sol";
 import "./mock/NotCompliantNFT.sol";
@@ -78,17 +77,6 @@ contract SubprotocolRegistryTest is DSTest {
         subprotocolRegistry.register(true, false, false, address(subprotocolNFTOne), name, 0);
     }
 
-    function testRegisterNotSubprotocolCompliantNFT() public {
-        vm.startPrank(user1);
-        string memory name = "subprotocol1";
-        NotCompliantNFT notCompliantNFT = new NotCompliantNFT();
-
-        vm.expectRevert(
-            abi.encodeWithSelector(SubprotocolRegistry.NotASubprotocolNFT.selector, address(notCompliantNFT))
-        );
-        subprotocolRegistry.register(true, false, false, address(notCompliantNFT), name, 0);
-    }
-
     function testReturnedDataMatchSubprotocol() public {
         vm.startPrank(user1);
         string memory name = "subprotocol1";
@@ -116,5 +104,13 @@ contract SubprotocolRegistryTest is DSTest {
         // Should revert if no type is specified
         vm.expectRevert(abi.encodeWithSelector(SubprotocolRegistry.NoTypeSpecified.selector, name));
         subprotocolRegistry.register(false, false, false, address(subprotocolNFT), name, 0);
+    }
+
+    function testRegisterNotSubprotocolCompliantNFT() public {
+        vm.startPrank(user1);
+        string memory name = "subprotocol1";
+        NotCompliantNFT notCompliantNFT = new NotCompliantNFT();
+        vm.expectRevert(abi.encodeWithSelector(SubprotocolRegistry.NotANFT.selector, address(notCompliantNFT)));
+        subprotocolRegistry.register(true, false, false, address(notCompliantNFT), name, 0);
     }
 }

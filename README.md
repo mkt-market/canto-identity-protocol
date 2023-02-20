@@ -16,7 +16,7 @@ The subprotocol registry is used to register new subprotocols. Every subprotocol
 The address registry allows user to associate their address with a CID NFT. Therefore, on-chain or off-chain applications can check this registry to get the CID NFT ID that is associated with a user.
 
 ## Subprotocols
-To describe, common interface, liveness checks, ...
+Subprotocols are arbitrary ERC721 tokens and their interface may differ depending on the subprotocol functionality. The only requirement we impose on subprotocols is that ID 0 is not mintable because adding a subprotocol NFT with ID 0 to a CID NFT is not possible (as the value is used in different functions to indicate absence of a value).
 
 # Testing
 
