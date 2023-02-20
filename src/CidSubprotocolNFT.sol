@@ -13,7 +13,7 @@ abstract contract CidSubprotocolNFT is ERC721 {
     /// @return active True if the Subprotocol NFT should be considered active
     function isActive(uint256 _nftID) public virtual returns (bool active);
 
-    function supportsInterface(bytes4 interfaceId) public pure override returns (bool) {
+    function supportsInterface(bytes4 interfaceId) public view override returns (bool) {
         return interfaceId == CID_SUBPROTOCOL_INTERFACE_ID || super.supportsInterface(interfaceId);
     }
 }

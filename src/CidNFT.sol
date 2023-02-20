@@ -70,6 +70,14 @@ contract CidNFT is ERC721 {
     /// @notice Stores the references to subprotocol NFTs. Mapping nftID => subprotocol name => subprotocol data
     mapping(uint256 => mapping(string => SubprotocolData)) internal cidData;
 
+    /// @notice Data that is passed to mint to directly add associations to the minted CID NFT
+    struct MintAddData {
+        string subprotocolName;
+        uint256 key;
+        uint256 nftIDToAdd;
+        AssociationType associationType;
+    }
+
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -99,7 +107,6 @@ contract CidNFT is ERC721 {
                                  ERRORS
     //////////////////////////////////////////////////////////////*/
     error TokenNotMinted(uint256 tokenID);
-    error AddCallAfterMintingFailed(uint256 index);
     error SubprotocolDoesNotExist(string subprotocolName);
     error NFTIDZeroDisallowedForSubprotocols();
     error AssociationTypeNotSupportedForSubprotocol(AssociationType associationType, string subprotocolName);
@@ -140,7 +147,7 @@ contract CidNFT is ERC721 {
     /// @param _id ID to retrieve the URI for
     /// @return tokenURI The URI of the queried token (path to a JSON file)
     function tokenURI(uint256 _id) public view override returns (string memory) {
-        if (ownerOf[_id] == address(0))
+        if (_ownerOf[_id] == address(0))
             // According to ERC721, this revert for non-existing tokens is required
             revert TokenNotMinted(_id);
         return string(abi.encodePacked(baseURI, _id, ".json"));
@@ -148,17 +155,13 @@ contract CidNFT is ERC721 {
 
     /// @notice Mint a new CID NFT
     /// @dev An address can mint multiple CID NFTs, but it can only set one as associated with it in the AddressRegistry
-    /// @param _addList An optional list of encoded parameters for add to add subprotocol NFTs directly after minting.
-    /// The parameters should not include the function selector itself, the function select for add is always prepended.
-    function mint(bytes[] calldata _addList) external {
-        _mint(msg.sender, ++numMinted); // We do not use _safeMint here on purpose. If a contract calls this method, he expects to get an NFT back
-        bytes4 addSelector = this.add.selector;
+    /// @param _addList An optional list of parameters for add to add subprotocol NFTs directly after minting.
+    function mint(MintAddData[] calldata _addList) external {
+        uint256 tokenToMint = ++numMinted;
+        _mint(msg.sender, tokenToMint); // We do not use _safeMint here on purpose. If a contract calls this method, he expects to get an NFT back
         for (uint256 i = 0; i < _addList.length; ++i) {
-            (
-                bool success, /*bytes memory result*/
-
-            ) = address(this).delegatecall(abi.encodePacked(addSelector, _addList[i]));
-            if (!success) revert AddCallAfterMintingFailed(i);
+            MintAddData calldata addData = _addList[i];
+            add(tokenToMint, addData.subprotocolName, addData.key, addData.nftIDToAdd, addData.associationType);
         }
     }
 
@@ -174,13 +177,13 @@ contract CidNFT is ERC721 {
         uint256 _key,
         uint256 _nftIDToAdd,
         AssociationType _type
-    ) external {
+    ) public {
         SubprotocolRegistry.SubprotocolData memory subprotocolData = subprotocolRegistry.getSubprotocol(
             _subprotocolName
         );
         address subprotocolOwner = subprotocolData.owner;
         if (subprotocolOwner == address(0)) revert SubprotocolDoesNotExist(_subprotocolName);
-        address cidNFTOwner = ownerOf[_cidNFTID];
+        address cidNFTOwner = _ownerOf[_cidNFTID];
         if (
             cidNFTOwner != msg.sender &&
             getApproved[_cidNFTID] != msg.sender &&
@@ -252,7 +255,7 @@ contract CidNFT is ERC721 {
         );
         address subprotocolOwner = subprotocolData.owner;
         if (subprotocolOwner == address(0)) revert SubprotocolDoesNotExist(_subprotocolName);
-        address cidNFTOwner = ownerOf[_cidNFTID];
+        address cidNFTOwner = _ownerOf[_cidNFTID];
         if (
             cidNFTOwner != msg.sender &&
             getApproved[_cidNFTID] != msg.sender &&
@@ -268,13 +271,13 @@ contract CidNFT is ERC721 {
                 revert OrderedValueNotSet(_cidNFTID, _subprotocolName, _key);
             delete cidData[_cidNFTID][_subprotocolName].ordered[_key];
             nftToRemove.transferFrom(address(this), msg.sender, currNFTID); // Use transferFrom here to prevent reentrancy possibility when remove is called from add
-            emit OrderedDataRemoved(_cidNFTID, _subprotocolName, _key, _nftIDToRemove);
+            emit OrderedDataRemoved(_cidNFTID, _subprotocolName, _key, currNFTID);
         } else if (_type == AssociationType.PRIMARY) {
             uint256 currNFTID = cidData[_cidNFTID][_subprotocolName].primary;
             if (currNFTID == 0) revert PrimaryValueNotSet(_cidNFTID, _subprotocolName);
             delete cidData[_cidNFTID][_subprotocolName].primary;
             nftToRemove.transferFrom(address(this), msg.sender, currNFTID);
-            emit PrimaryDataRemoved(_cidNFTID, _subprotocolName, _nftIDToRemove);
+            emit PrimaryDataRemoved(_cidNFTID, _subprotocolName, currNFTID);
         } else if (_type == AssociationType.ACTIVE) {
             IndexedArray storage activeData = cidData[_cidNFTID][_subprotocolName].active;
             uint256 arrayPosition = activeData.positions[_nftIDToRemove]; // Index + 1, 0 if non-existant
