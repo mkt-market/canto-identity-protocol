@@ -32,6 +32,7 @@ contract AddressRegistry {
     //////////////////////////////////////////////////////////////*/
     error NFTNotOwnedByUser(uint256 cidNFTID, address caller);
     error NoCIDNFTRegisteredForUser(address caller);
+    error RemoveOnTransferOnlyCallableByCIDNFT();
 
     /// @param _cidNFT Address of the CID NFT contract
     constructor(address _cidNFT) {
@@ -47,7 +48,6 @@ contract AddressRegistry {
     /// @dev Will overwrite existing registration if any exists
     function register(uint256 _cidNFTID) external {
         if (ERC721(cidNFT).ownerOf(_cidNFTID) != msg.sender)
-            // We only guarantee that a CID NFT is owned by the user at the time of registration
             // ownerOf reverts if non-existing ID is provided
             revert NFTNotOwnedByUser(_cidNFTID, msg.sender);
         cidNFTs[msg.sender] = _cidNFTID;
@@ -60,6 +60,17 @@ contract AddressRegistry {
         if (cidNFTID == 0) revert NoCIDNFTRegisteredForUser(msg.sender);
         delete cidNFTs[msg.sender];
         emit CIDNFTRemoved(msg.sender, cidNFTID);
+    }
+
+    /// @notice Called by the CID NFT contract on transfers to remove an existing association
+    /// @param _transferFrom Current owner of the CID NFT
+    /// @param _cidNFTID Transferred CID NFT ID
+    function removeOnTransfer(address _transferFrom, uint256 _cidNFTID) external {
+        if (msg.sender != cidNFT) revert RemoveOnTransferOnlyCallableByCIDNFT();
+        uint256 cidNFTIDRegistered = cidNFTs[_transferFrom];
+        if (cidNFTIDRegistered != _cidNFTID) return; // Was not registered
+        delete cidNFTs[_transferFrom];
+        emit CIDNFTRemoved(_transferFrom, cidNFTIDRegistered);
     }
 
     /// @notice Get the CID NFT ID that is registered for the provided user

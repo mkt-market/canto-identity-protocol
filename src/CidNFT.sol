@@ -4,12 +4,14 @@ pragma solidity >=0.8.0;
 import {ERC721} from "solmate/tokens/ERC721.sol";
 import "solmate/tokens/ERC20.sol";
 import "solmate/utils/SafeTransferLib.sol";
+import "solmate/auth/Owned.sol";
 import "./SubprotocolRegistry.sol";
+import "./AddressRegistry.sol";
 import "../interface/Turnstile.sol";
 
 /// @title Canto Identity Protocol NFT
 /// @notice CID NFTs are at the heart of the CID protocol. All key/values of subprotocols are associated with them.
-contract CidNFT is ERC721 {
+contract CidNFT is ERC721, Owned {
     /*//////////////////////////////////////////////////////////////
                                  CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -29,6 +31,9 @@ contract CidNFT is ERC721 {
 
     /// @notice Reference to the subprotocol registry
     SubprotocolRegistry public immutable subprotocolRegistry;
+
+    /// @notice Reference to the address registry. Must be set by the owner
+    AddressRegistry public addressRegistry;
 
     /*//////////////////////////////////////////////////////////////
                                  STATE
@@ -131,7 +136,7 @@ contract CidNFT is ERC721 {
         address _cidFeeWallet,
         address _noteContract,
         address _subprotocolRegistry
-    ) ERC721(_name, _symbol) {
+    ) ERC721(_name, _symbol) Owned(msg.sender) {
         baseURI = _baseURI;
         cidFeeWallet = _cidFeeWallet;
         note = ERC20(_noteContract);
@@ -343,5 +348,23 @@ contract CidNFT is ERC721 {
         uint256 _nftIDToCheck
     ) external view returns (bool nftIncluded) {
         nftIncluded = cidData[_cidNFTID][_subprotocolName].active.positions[_nftIDToCheck] != 0;
+    }
+
+    /// @notice Used to set the address registry after deployment (because of circular dependencies)
+    /// @param _addressRegistry Address of the address registry
+    function setAddressRegistry(address _addressRegistry) external onlyOwner {
+        if (address(addressRegistry) == address(0)) {
+            addressRegistry = AddressRegistry(_addressRegistry);
+        }
+    }
+
+    /// @notice Override transferFrom to deregister CID NFT in address registry if registered
+    function transferFrom(
+        address from,
+        address to,
+        uint256 id
+    ) public override {
+        super.transferFrom(from, to, id);
+        addressRegistry.removeOnTransfer(from, id);
     }
 }
