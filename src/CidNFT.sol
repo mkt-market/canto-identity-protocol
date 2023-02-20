@@ -48,13 +48,13 @@ contract CidNFT is ERC721, Owned {
         mapping(uint256 => uint256) positions;
     }
 
-    /// @notice Data that is associated with a CID NFT -> subprotocol combination
+    /// @notice Data that is associated with a CID NFT -> subprotocol name combination
     struct SubprotocolData {
-        /// @notice Mapping for ordered type
+        /// @notice Mapping (key => subprotocol NFT ID) for ordered type
         mapping(uint256 => uint256) ordered;
-        /// @notice Value for primary type
+        /// @notice Value (subprotocol NFT ID) for primary type
         uint256 primary;
-        /// @notice List for active type
+        /// @notice List (of subprotocol NFT IDs) for active type
         IndexedArray active;
     }
 
@@ -68,12 +68,23 @@ contract CidNFT is ERC721, Owned {
         ACTIVE
     }
 
+    /// @notice Data that is associated with a subprotocol name -> subprotocol NFT ID combination (for reverse lookups)
+    struct CIDNFTSubprotocolData {
+        /// @notice Referenced CID NFT ID
+        uint256 cidNFTID;
+        /// @notice Key (for ordered) or array position (for active)
+        uint256 position;
+    }
+
     /// @notice Counter of the minted NFTs
     /// @dev Used to assign a new unique ID. The first ID that is assigned is 1, ID 0 is never minted.
     uint256 public numMinted;
 
     /// @notice Stores the references to subprotocol NFTs. Mapping nftID => subprotocol name => subprotocol data
     mapping(uint256 => mapping(string => SubprotocolData)) internal cidData;
+
+    /// @notice Allows lookups of subprotocol NFTs to CID NFTs. Mapping subprotocol name => subprotocol NFT ID => AssociationType => CID NFT ID
+    mapping(string => mapping(uint256 => mapping(AssociationType => CIDNFTSubprotocolData))) internal cidDataInverse;
 
     /// @notice Data that is passed to mint to directly add associations to the minted CID NFT
     struct MintAddData {
@@ -213,6 +224,10 @@ contract CidNFT is ERC721, Owned {
                 remove(_cidNFTID, _subprotocolName, _key, 0, _type);
             }
             cidData[_cidNFTID][_subprotocolName].ordered[_key] = _nftIDToAdd;
+            cidDataInverse[_subprotocolName][_nftIDToAdd][AssociationType.ORDERED] = CIDNFTSubprotocolData(
+                _cidNFTID,
+                _key
+            );
             emit OrderedDataAdded(_cidNFTID, _subprotocolName, _key, _nftIDToAdd);
         } else if (_type == AssociationType.PRIMARY) {
             if (!subprotocolData.primary) revert AssociationTypeNotSupportedForSubprotocol(_type, _subprotocolName);
@@ -221,6 +236,10 @@ contract CidNFT is ERC721, Owned {
                 remove(_cidNFTID, _subprotocolName, 0, 0, _type);
             }
             cidData[_cidNFTID][_subprotocolName].primary = _nftIDToAdd;
+            cidDataInverse[_subprotocolName][_nftIDToAdd][AssociationType.PRIMARY] = CIDNFTSubprotocolData(
+                _cidNFTID,
+                0
+            );
             emit PrimaryDataAdded(_cidNFTID, _subprotocolName, _nftIDToAdd);
         } else if (_type == AssociationType.ACTIVE) {
             if (!subprotocolData.active) revert AssociationTypeNotSupportedForSubprotocol(_type, _subprotocolName);
@@ -238,6 +257,10 @@ contract CidNFT is ERC721, Owned {
                 activeData.values.push(_nftIDToAdd);
                 activeData.positions[_nftIDToAdd] = lengthBeforeAddition + 1;
             }
+            cidDataInverse[_subprotocolName][_nftIDToAdd][AssociationType.ACTIVE] = CIDNFTSubprotocolData(
+                _cidNFTID,
+                lengthBeforeAddition
+            );
             emit ActiveDataAdded(_cidNFTID, _subprotocolName, _nftIDToAdd, lengthBeforeAddition);
         }
     }
@@ -275,12 +298,14 @@ contract CidNFT is ERC721, Owned {
                 // This check is technically not necessary (because the NFT transfer would fail), but we include it to have more meaningful errors
                 revert OrderedValueNotSet(_cidNFTID, _subprotocolName, _key);
             delete cidData[_cidNFTID][_subprotocolName].ordered[_key];
+            delete cidDataInverse[_subprotocolName][currNFTID][AssociationType.ORDERED];
             nftToRemove.transferFrom(address(this), msg.sender, currNFTID); // Use transferFrom here to prevent reentrancy possibility when remove is called from add
             emit OrderedDataRemoved(_cidNFTID, _subprotocolName, _key, currNFTID);
         } else if (_type == AssociationType.PRIMARY) {
             uint256 currNFTID = cidData[_cidNFTID][_subprotocolName].primary;
             if (currNFTID == 0) revert PrimaryValueNotSet(_cidNFTID, _subprotocolName);
             delete cidData[_cidNFTID][_subprotocolName].primary;
+            delete cidDataInverse[_subprotocolName][currNFTID][AssociationType.PRIMARY];
             nftToRemove.transferFrom(address(this), msg.sender, currNFTID);
             emit PrimaryDataRemoved(_cidNFTID, _subprotocolName, currNFTID);
         } else if (_type == AssociationType.ACTIVE) {
@@ -293,10 +318,12 @@ contract CidNFT is ERC721, Owned {
                 uint256 befSwapLastNFTID = activeData.values[arrayLength - 1];
                 activeData.values[arrayPosition - 1] = befSwapLastNFTID;
                 activeData.positions[befSwapLastNFTID] = arrayPosition;
+                cidDataInverse[_subprotocolName][befSwapLastNFTID][AssociationType.ACTIVE].position = arrayPosition - 1;
             }
             activeData.values.pop();
             activeData.positions[_nftIDToRemove] = 0;
             nftToRemove.transferFrom(address(this), msg.sender, _nftIDToRemove);
+            delete cidDataInverse[_subprotocolName][_nftIDToRemove][AssociationType.ACTIVE];
             emit ActiveDataRemoved(_cidNFTID, _subprotocolName, _nftIDToRemove);
         }
     }
@@ -314,6 +341,23 @@ contract CidNFT is ERC721, Owned {
         subprotocolNFTID = cidData[_cidNFTID][_subprotocolName].ordered[_key];
     }
 
+    /// @notice Perform an inverse lookup for ordered associations. Given the subprotocol name and subprotocol NFT ID, return the CID NFT ID and the key
+    /// @dev cidNFTID is 0 if no association exists
+    /// @param _subprotocolName Subprotocl name to query
+    /// @param _subprotocolNFTID Subprotocol NFT ID to query
+    /// @return key The key with which _subprotocolNFTID is associated, cidNFTID The CID NFT with which the subprotocol NFT ID is associated (0 if none)
+    function getOrderedCIDNFT(string calldata _subprotocolName, uint256 _subprotocolNFTID)
+        external
+        view
+        returns (uint256 key, uint256 cidNFTID)
+    {
+        CIDNFTSubprotocolData storage inverseData = cidDataInverse[_subprotocolName][_subprotocolNFTID][
+            AssociationType.ORDERED
+        ];
+        key = inverseData.position;
+        cidNFTID = inverseData.cidNFTID;
+    }
+
     /// @notice Get the primary data that is associated with a CID NFT / Subprotocol
     /// @param _cidNFTID ID of the CID NFT to query
     /// @param _subprotocolName Name of the subprotocol to query
@@ -324,6 +368,22 @@ contract CidNFT is ERC721, Owned {
         returns (uint256 subprotocolNFTID)
     {
         subprotocolNFTID = cidData[_cidNFTID][_subprotocolName].primary;
+    }
+
+    /// @notice Perform an inverse lookup for primary associations. Given the subprotocol name and subprotocol NFT ID, return the CID NFT ID
+    /// @dev cidNFTID is 0 if no association exists
+    /// @param _subprotocolName Subprotocl name to query
+    /// @param _subprotocolNFTID Subprotocol NFT ID to query
+    /// @return cidNFTID The CID NFT with which the subprotocol NFT ID is associated (0 if none)
+    function getPrimaryCIDNFT(string calldata _subprotocolName, uint256 _subprotocolNFTID)
+        external
+        view
+        returns (uint256 cidNFTID)
+    {
+        CIDNFTSubprotocolData storage inverseData = cidDataInverse[_subprotocolName][_subprotocolNFTID][
+            AssociationType.PRIMARY
+        ];
+        cidNFTID = inverseData.cidNFTID;
     }
 
     /// @notice Get the active data list that is associated with a CID NFT / Subprotocol
@@ -348,6 +408,23 @@ contract CidNFT is ERC721, Owned {
         uint256 _nftIDToCheck
     ) external view returns (bool nftIncluded) {
         nftIncluded = cidData[_cidNFTID][_subprotocolName].active.positions[_nftIDToCheck] != 0;
+    }
+
+    /// @notice Perform an inverse lookup for active associations. Given the subprotocol name and subprotocol NFT ID, return the CID NFT ID and the array position
+    /// @dev cidNFTID is 0 if no association exists
+    /// @param _subprotocolName Subprotocl name to query
+    /// @param _subprotocolNFTID Subprotocol NFT ID to query
+    /// @return position The current position of _subprotocolNFTID. May change in the future because of swaps, cidNFTID The CID NFT with which the subprotocol NFT ID is associated (0 if none)
+    function getActiveCIDNFT(string calldata _subprotocolName, uint256 _subprotocolNFTID)
+        external
+        view
+        returns (uint256 position, uint256 cidNFTID)
+    {
+        CIDNFTSubprotocolData storage inverseData = cidDataInverse[_subprotocolName][_subprotocolNFTID][
+            AssociationType.ACTIVE
+        ];
+        position = inverseData.position;
+        cidNFTID = inverseData.cidNFTID;
     }
 
     /// @notice Used to set the address registry after deployment (because of circular dependencies)
