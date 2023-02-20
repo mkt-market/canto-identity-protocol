@@ -150,7 +150,7 @@ contract CidNFT is ERC721 {
         if (_ownerOf[_id] == address(0))
             // According to ERC721, this revert for non-existing tokens is required
             revert TokenNotMinted(_id);
-        return string(abi.encodePacked(baseURI, _id, ".json"));
+        return baseURI;
     }
 
     /// @notice Mint a new CID NFT
