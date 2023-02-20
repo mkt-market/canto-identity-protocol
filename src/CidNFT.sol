@@ -83,7 +83,7 @@ contract CidNFT is ERC721, Owned {
     /// @notice Stores the references to subprotocol NFTs. Mapping nftID => subprotocol name => subprotocol data
     mapping(uint256 => mapping(string => SubprotocolData)) internal cidData;
 
-    /// @notice Allows lookups of subprotocol NFTs to CID NFTs. Mapping subprotocol name => subprotocol NFT ID => AssociationType => CID NFT ID
+    /// @notice Allows lookups of subprotocol NFTs to CID NFTs. Mapping subprotocol name => subprotocol NFT ID => AssociationType => (CID NFT ID, position or key)
     mapping(string => mapping(uint256 => mapping(AssociationType => CIDNFTSubprotocolData))) internal cidDataInverse;
 
     /// @notice Data that is passed to mint to directly add associations to the minted CID NFT
