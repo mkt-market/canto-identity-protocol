@@ -59,7 +59,7 @@ interface IERC721 is IERC165 {
         address _from,
         address _to,
         uint256 _tokenId,
-        bytes data
+        bytes memory data
     ) external payable;
 
     /// @notice Transfers the ownership of an NFT from one address to another address
