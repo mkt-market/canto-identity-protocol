@@ -79,4 +79,15 @@ contract AddressRegistry {
     function getCID(address _user) external view returns (uint256 cidNFTID) {
         cidNFTID = cidNFTs[_user];
     }
+
+    /// @notice Get the address that is registered for a given CID NFT ID
+    /// @param _cidNFTID CID NFT ID to query
+    /// @return user The user that is currently registered for the given CID NFT. address(0) if no user is registered
+    function getAddress(uint256 _cidNFTID) external view returns (address user) {
+        user = ERC721(cidNFT).ownerOf(_cidNFTID);
+        if (_cidNFTID != cidNFTs[user]) {
+            // User owns CID NFT, but has not registered it
+            user = address(0);
+        }
+    }
 }

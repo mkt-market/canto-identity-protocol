@@ -177,8 +177,15 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         assertEq(cidNFT.ownerOf(tokenId), address(this));
         // confirm data
         assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
+        (uint256 returnedKey1, uint256 returnedTokenId1) = cidNFT.getOrderedCIDNFT("sub1", sub1Id);
+        assertEq(returnedKey1, key1);
+        assertEq(returnedTokenId1, tokenId);
         assertEq(cidNFT.getOrderedData(tokenId, "sub2", key2), sub2Id);
+        (uint256 returnedKey2, uint256 returnedTokenId2) = cidNFT.getOrderedCIDNFT("sub2", sub2Id);
+        assertEq(returnedKey2, key2);
+        assertEq(returnedTokenId2, tokenId);
         assertEq(cidNFT.getPrimaryData(tokenId, "sub2"), prevPrimaryId);
+        assertEq(cidNFT.getPrimaryCIDNFT("sub2", prevPrimaryId), tokenId);
     }
 
     function testMintWithMultiAddItemsAndRevert() public {
@@ -206,7 +213,11 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         cidNFT.ownerOf(tokenId);
         // confirm data - not added
         assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), 0);
+        (uint256 returnedKey1, uint256 returnedTokenId1) = cidNFT.getOrderedCIDNFT("sub1", sub1Id);
+        assertEq(returnedTokenId1, 0);
         assertEq(cidNFT.getOrderedData(tokenId, "sub2", key2), 0);
+        (uint256 returnedKey2, uint256 returnedTokenId2) = cidNFT.getOrderedCIDNFT("sub2", sub2Id);
+        assertEq(returnedTokenId2, 0);
         // sub NFTs are not transferred
         assertEq(sub1.ownerOf(sub1Id), address(this));
         assertEq(sub2.ownerOf(sub2Id), address(this));
@@ -247,6 +258,9 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
 
         // confirm data
         assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
+        (uint256 returnedKey1, uint256 returnedTokenId1) = cidNFT.getOrderedCIDNFT("sub1", sub1Id);
+        assertEq(returnedKey1, key1);
+        assertEq(returnedTokenId1, tokenId);
 
         // remove by owner
         vm.expectEmit(true, true, true, true);
@@ -290,6 +304,9 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
 
         // confirm data
         assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
+        (uint256 returnedKey1, uint256 returnedTokenId1) = cidNFT.getOrderedCIDNFT("sub1", sub1Id);
+        assertEq(returnedKey1, key1);
+        assertEq(returnedTokenId1, tokenId);
 
         // remove by approved account
         vm.expectEmit(true, true, true, true);
@@ -310,6 +327,9 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
 
         // confirm data
         assertEq(cidNFT.getOrderedData(tokenId, "sub1", key1), sub1Id);
+        (uint256 returnedKey1, uint256 returnedTokenId1) = cidNFT.getOrderedCIDNFT("sub1", sub1Id);
+        assertEq(returnedKey1, key1);
+        assertEq(returnedTokenId1, tokenId);
 
         // remove by approved all account
         vm.expectEmit(true, true, true, true);
@@ -406,11 +426,16 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         // check add result
         assertEq(sub1.ownerOf(subId), address(cidNFT));
         assertEq(cidNFT.getOrderedData(tokenId, "sub1", key), subId);
+        (uint256 returnedKey, uint256 returnedTokenId) = cidNFT.getOrderedCIDNFT("sub1", subId);
+        assertEq(returnedKey, key);
+        assertEq(returnedTokenId, tokenId);
         // remove
         cidNFT.remove(tokenId, "sub1", key, subId, CidNFT.AssociationType.ORDERED);
         // check remove result
         assertEq(sub1.ownerOf(subId), user);
         assertEq(cidNFT.getOrderedData(tokenId, "sub1", key), 0);
+        (returnedKey, returnedTokenId) = cidNFT.getOrderedCIDNFT("sub1", subId);
+        assertEq(returnedTokenId, 0);
         vm.stopPrank();
     }
 
@@ -422,11 +447,13 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         // check add result
         assertEq(sub1.ownerOf(subId), address(cidNFT));
         assertEq(cidNFT.getPrimaryData(tokenId, "sub1"), subId);
+        assertEq(cidNFT.getPrimaryCIDNFT("sub1", subId), tokenId);
         // remove
         cidNFT.remove(tokenId, "sub1", key, subId, CidNFT.AssociationType.PRIMARY);
         // check remove result
         assertEq(sub1.ownerOf(subId), user);
         assertEq(cidNFT.getPrimaryData(tokenId, "sub1"), 0);
+        assertEq(cidNFT.getPrimaryCIDNFT("sub1", subId), 0);
         vm.stopPrank();
     }
 
@@ -441,6 +468,9 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
             uint256[] memory values = cidNFT.getActiveData(tokenId, "sub1");
             assertEq(values.length, 1);
             assertTrue(cidNFT.activeDataIncludesNFT(tokenId, "sub1", subId));
+            (uint256 position, uint256 cidNFTTokenID) = cidNFT.getActiveCIDNFT("sub1", subId);
+            assertEq(position, 0);
+            assertEq(cidNFTTokenID, tokenId);
         }
         // remove
         cidNFT.remove(tokenId, "sub1", key, subId, CidNFT.AssociationType.ACTIVE);
@@ -450,6 +480,8 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
             uint256[] memory values = cidNFT.getActiveData(tokenId, "sub1");
             assertEq(values.length, 0);
             assertTrue(!cidNFT.activeDataIncludesNFT(tokenId, "sub1", subId));
+            (uint256 position, uint256 cidNFTTokenID) = cidNFT.getActiveCIDNFT("sub1", subId);
+            assertEq(cidNFTTokenID, 0);
         }
         vm.stopPrank();
     }
@@ -499,6 +531,9 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         assertEq(values.length, count);
         for (uint256 i = 0; i < count; i++) {
             assertEq(values[i], expectedIds[i]);
+            (uint256 position, uint256 cidNFTTokenID) = cidNFT.getActiveCIDNFT(subName, expectedIds[i]);
+            assertEq(position, i);
+            assertEq(cidNFTTokenID, tokenId);
         }
     }
 
@@ -626,6 +661,9 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         vm.stopPrank();
         // confirm data
         assertEq(cidNFT.getOrderedData(tokenId, "SubWithFee", key), subId);
+        (uint256 returnedKey, uint256 returnedTokenId) = cidNFT.getOrderedCIDNFT("SubWithFee", subId);
+        assertEq(returnedKey, key);
+        assertEq(returnedTokenId, tokenId);
 
         // check fee flow
         assertEq(note.balanceOf(user2), balUser - subFee);
