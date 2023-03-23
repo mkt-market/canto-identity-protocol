@@ -27,7 +27,7 @@ contract CidNFT is ERC721, Owned {
     address public immutable cidFeeWallet;
 
     /// @notice Reference to the NOTE TOKEN
-    ERC20 public immutable note;
+    ERC20 public note;
 
     /// @notice Reference to the subprotocol registry
     SubprotocolRegistry public immutable subprotocolRegistry;
@@ -433,6 +433,12 @@ contract CidNFT is ERC721, Owned {
         if (address(addressRegistry) == address(0)) {
             addressRegistry = AddressRegistry(_addressRegistry);
         }
+    }
+
+    /// @notice Change the $NOTE address
+    /// @param _noteAddress Address of the $NOTE token
+    function changeNoteAddress(address _noteAddress) external onlyOwner {
+        note = ERC20(_noteAddress);
     }
 
     /// @notice Override transferFrom to deregister CID NFT in address registry if registered
