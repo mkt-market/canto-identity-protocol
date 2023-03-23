@@ -3,7 +3,7 @@ pragma solidity >=0.8.0;
 
 import {Vm} from "forge-std/Vm.sol";
 import {DSTest} from "ds-test/test.sol";
-import {stdError} from "forge-std/stdlib.sol";
+import {stdError} from "forge-std/StdError.sol";
 import {Utilities} from "./utils/Utilities.sol";
 import {console} from "./utils/Console.sol";
 import "../CidNFT.sol";

@@ -2,5 +2,4 @@ out/
 cache/
 node_modules/
 .env
-lib
 .DS_Store
