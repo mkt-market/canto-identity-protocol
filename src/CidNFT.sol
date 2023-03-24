@@ -156,14 +156,20 @@ contract CidNFT is ERC721, Owned {
         }
     }
 
-    /// @notice Get the token URI for the provided ID
+    /// @notice Get the token URI for the provided ID. Returns the namespace tokenURI (if one is associated with the CID), otherwise the logo as a fallback.
     /// @param _id ID to retrieve the URI for
     /// @return tokenURI The URI of the queried token (path to a JSON file)
     function tokenURI(uint256 _id) public view override returns (string memory) {
         if (_ownerOf[_id] == address(0))
             // According to ERC721, this revert for non-existing tokens is required
             revert TokenNotMinted(_id);
-        return "";
+        uint256 namespaceNFTID = cidData[_id][namespaceSubprotocolName].primary;
+        if (namespaceNFTID == 0) {
+            return "";
+        } else {
+            address subprotocolNFTAddress = subprotocolRegistry.getSubprotocol(namespaceSubprotocolName).nftAddress;
+            return ERC721(subprotocolNFTAddress).tokenURI(namespaceNFTID);
+        }
     }
 
     /// @notice Mint a new CID NFT

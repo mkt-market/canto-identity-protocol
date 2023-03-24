@@ -6,13 +6,17 @@ pragma solidity >=0.8.0;
 contract SubprotocolNFT is ERC721 {
     constructor() ERC721("MockNFT", "MNFT") {}
 
+    mapping(uint256 => string) mockTokenURI;
+
     function mint(address to, uint256 tokenId) public {
         _mint(to, tokenId);
     }
 
-    function tokenURI(
-        uint256 /*id*/
-    ) public pure override returns (string memory) {
-        return "";
+    function tokenURI(uint256 id) public view override returns (string memory) {
+        return mockTokenURI[id];
+    }
+
+    function setMockTokenURI(uint256 id, string memory uri) public {
+        mockTokenURI[id] = uri;
     }
 }
