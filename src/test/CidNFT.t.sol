@@ -743,6 +743,31 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         assertEq(address(cidNFT2.note()), address(0));
     }
 
+    function testChangeNamespaceNameFromNonOwner() public {
+        CidNFT cidNFT2 = new CidNFT(
+            "MockCidNFT2",
+            "MCNFT2",
+            feeWallet,
+            address(note),
+            address(subprotocolRegistry)
+        );
+        vm.prank(user1);
+        vm.expectRevert("UNAUTHORIZED");
+        cidNFT2.changeNamespaceReference("test");
+    }
+
+    function testChangeNamespaceNameFromOwner() public {
+        CidNFT cidNFT2 = new CidNFT(
+            "MockCidNFT2",
+            "MCNFT2",
+            feeWallet,
+            address(note),
+            address(subprotocolRegistry)
+        );
+        cidNFT2.changeNamespaceReference("test");
+        assertEq(cidNFT2.namespaceSubprotocolName(), "test");
+    }
+
     function onERC721Received(
         address, /*operator*/
         address, /*from*/

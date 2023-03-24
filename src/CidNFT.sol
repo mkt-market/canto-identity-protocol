@@ -91,6 +91,9 @@ contract CidNFT is ERC721, Owned {
         AssociationType associationType;
     }
 
+    /// @notice Registered name of the canonical namespace subprotocol. Used for the tokenURI
+    string public namespaceSubprotocolName;
+
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
@@ -433,6 +436,12 @@ contract CidNFT is ERC721, Owned {
     /// @param _noteAddress Address of the $NOTE token
     function changeNoteAddress(address _noteAddress) external onlyOwner {
         note = ERC20(_noteAddress);
+    }
+
+    /// @notice Change the namespace subprotocol name that is used within the tokenURI function
+    /// @param _namespaceSubprotocolName Registered name of the namespace subprotocol name
+    function changeNamespaceReference(string memory _namespaceSubprotocolName) external onlyOwner {
+        namespaceSubprotocolName = _namespaceSubprotocolName;
     }
 
     /// @notice Override transferFrom to deregister CID NFT in address registry if registered
