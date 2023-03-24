@@ -23,7 +23,7 @@ contract AddressRegistryTest is DSTest {
         utils = new Utilities();
         users = utils.createUsers(5);
 
-        cidNFT = new CidNFT("MockCidNFT", "MCNFT", "base_uri/", users[0], address(0), address(0));
+        cidNFT = new CidNFT("MockCidNFT", "MCNFT", users[0], address(0), address(0));
         addressRegistry = new AddressRegistry(address(cidNFT));
         cidNFT.setAddressRegistry(address(addressRegistry));
     }

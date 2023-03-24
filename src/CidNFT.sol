@@ -39,9 +39,6 @@ contract CidNFT is ERC721, Owned {
                                  STATE
     //////////////////////////////////////////////////////////////*/
 
-    /// @notice Base URI of the NFT
-    string public baseURI;
-
     /// @notice Array of uint256 values (NFT IDs) with additional position information NFT ID => (array pos. + 1)
     struct IndexedArray {
         uint256[] values;
@@ -136,19 +133,16 @@ contract CidNFT is ERC721, Owned {
     /// @notice Sets the name, symbol, baseURI, and the address of the auction factory
     /// @param _name Name of the NFT
     /// @param _symbol Symbol of the NFT
-    /// @param _baseURI NFT base URI. {id}.json is appended to this URI
     /// @param _cidFeeWallet Address of the wallet that receives the fees
     /// @param _noteContract Address of the $NOTE contract
     /// @param _subprotocolRegistry Address of the subprotocol registry
     constructor(
         string memory _name,
         string memory _symbol,
-        string memory _baseURI,
         address _cidFeeWallet,
         address _noteContract,
         address _subprotocolRegistry
     ) ERC721(_name, _symbol) Owned(msg.sender) {
-        baseURI = _baseURI;
         cidFeeWallet = _cidFeeWallet;
         note = ERC20(_noteContract);
         subprotocolRegistry = SubprotocolRegistry(_subprotocolRegistry);
@@ -166,7 +160,7 @@ contract CidNFT is ERC721, Owned {
         if (_ownerOf[_id] == address(0))
             // According to ERC721, this revert for non-existing tokens is required
             revert TokenNotMinted(_id);
-        return baseURI;
+        return "";
     }
 
     /// @notice Mint a new CID NFT

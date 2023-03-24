@@ -35,7 +35,6 @@ contract DeploymentScript is Script {
         CidNFT cidNFT = new CidNFT(
             cidNFTName,
             cidNFTSymbol,
-            "", // TODO: BaseURI
             FEE_WALLET,
             NOTE,
             _subprotocolRegistry

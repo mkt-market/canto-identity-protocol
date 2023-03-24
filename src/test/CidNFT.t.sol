@@ -56,7 +56,7 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
 
         note = new MockToken();
         subprotocolRegistry = new SubprotocolRegistry(address(note), feeWallet);
-        cidNFT = new CidNFT("MockCidNFT", "MCNFT", BASE_URI, feeWallet, address(note), address(subprotocolRegistry));
+        cidNFT = new CidNFT("MockCidNFT", "MCNFT", feeWallet, address(note), address(subprotocolRegistry));
         AddressRegistry addressRegistry = new AddressRegistry(address(cidNFT));
         cidNFT.setAddressRegistry(address(addressRegistry));
         sub1 = new SubprotocolNFT();
@@ -709,7 +709,6 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         CidNFT cidNFT2 = new CidNFT(
             "MockCidNFT2",
             "MCNFT2",
-            BASE_URI,
             feeWallet,
             address(note),
             address(subprotocolRegistry)
@@ -723,7 +722,6 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         CidNFT cidNFT2 = new CidNFT(
             "MockCidNFT2",
             "MCNFT2",
-            BASE_URI,
             feeWallet,
             address(note),
             address(subprotocolRegistry)
@@ -737,7 +735,6 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         CidNFT cidNFT2 = new CidNFT(
             "MockCidNFT2",
             "MCNFT2",
-            BASE_URI,
             feeWallet,
             address(note),
             address(subprotocolRegistry)
