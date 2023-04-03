@@ -47,7 +47,7 @@ contract IntegrationTest is DSTest {
 
         note = new MockToken();
         subprotocolRegistry = new SubprotocolRegistry(address(note), feeWallet);
-        cidNFT = new CidNFT("MockCidNFT", "MCNFT", BASE_URI, feeWallet, address(note), address(subprotocolRegistry));
+        cidNFT = new CidNFT("MockCidNFT", "MCNFT", feeWallet, address(note), address(subprotocolRegistry));
         addressRegistry = new AddressRegistry(address(cidNFT));
 
         sub1 = new SubprotocolNFT();

@@ -16,6 +16,9 @@ import "./mock/SubprotocolNFT.sol";
 contract CidNFTTest is DSTest, ERC721TokenReceiver {
     Vm internal immutable vm = Vm(HEVM_ADDRESS);
 
+    string private constant SVG_FALLBACK =
+        '<svg xmlns="http://www.w3.org/2000/svg" fill-rule="evenodd" clip-rule="evenodd" image-rendering="optimizeQuality" shape-rendering="geometricPrecision" text-rendering="geometricPrecision" version="1.1" viewBox="0 0 1200 600"><path d="M92.5 92.5a26353.32 26353.32 0 0 1 397 1.5c6.64 6.094 11.14 13.594 13.5 22.5a414.058 414.058 0 0 1 1 55 4305.687 4305.687 0 0 0-77.5 78.5c-23.333.667-46.667.667-70 0-11.5-3.5-19-11-22.5-22.5l-.5-21.5a179.558 179.558 0 0 1 1.5-25.5 131.352 131.352 0 0 1 12-15c1.32-1.987 3.152-3.154 5.5-3.5l3.5-5.5a102.249 102.249 0 0 1 10-9c2.21-5.762.376-9.928-5.5-12.5-3.62-.841-6.954-.174-10 2a18778.45 18778.45 0 0 0-115 115.5c-1.275 3.373-1.108 6.707.5 10 12.95 8.57 18.284 20.57 16 36a88.011 88.011 0 0 1-6 11c-12.134 11.126-23.134 23.126-33 36-8.565 23.924-3.065 43.757 16.5 59.5 19.095 11.458 38.095 11.29 57-.5a10066.422 10066.422 0 0 0 85-84.5c15.634-3.786 21.467 2.048 17.5 17.5a4356.947 4356.947 0 0 0-74 74 28.931 28.931 0 0 1-1.5 4c1.645 4.81 4.81 8.144 9.5 10a1689.64 1689.64 0 0 1 7.5-4.5 6870.558 6870.558 0 0 0 98-99 18.924 18.924 0 0 0 5-3 214.134 214.134 0 0 1 39 1c15.813 4.479 25.979 14.646 30.5 30.5a511.61 511.61 0 0 1 1.5 42 364.356 364.356 0 0 1-1.5 37 1768.187 1768.187 0 0 0-49.5 50.5l-3 1a20.231 20.231 0 0 1-7.5 7.5c-.273 1.83-1.107 3.33-2.5 4.5a536.121 536.121 0 0 0-11 9c-112.667.667-225.333.667-338 0-13.816-12.039-18.65-27.206-14.5-45.5 2-6.833 4.5-13.5 7.5-20 3.083-1.917 5.25-4.584 6.5-8a23.918 23.918 0 0 0 7.5-7.5c3.167-.5 5-2.333 5.5-5.5a74.329 74.329 0 0 1 11.5-9.5 11.333 11.333 0 0 0 1.5-3.5 37532.8 37532.8 0 0 1 103-102c3.05-2.926 5.215-6.426 6.5-10.5-.902-4.147-3.235-7.147-7-9-2.068-.687-4.068-.52-6 .5a4463.19 4463.19 0 0 0-97 97.5 84.733 84.733 0 0 1-10 8c-8.016 3.589-16.016 2.923-24-2a55.861 55.861 0 0 0-4.5-5.5 8696.825 8696.825 0 0 1-1-263c2.464-9.973 7.63-17.973 15.5-24Z" fill="#000" opacity=".971"/><path d="M557.5 92.5c28.422-.483 56.755.017 85 1.5 11.959 11.393 15.959 25.226 12 41.5a2146.267 2146.267 0 0 1-39.5 38c-5.039 8.879-2.706 14.546 7 17a38.206 38.206 0 0 0 8.5-5.5c4.387-7.15 10.721-9.483 19-7 4.948 1.721 6.948 5.221 6 10.5l-.5 6-95.5 95.5c-7.585 3.323-13.418 1.49-17.5-5.5-.667-55-.667-110 0-165a103.188 103.188 0 0 1 7-18 41.047 41.047 0 0 0 8.5-9Z" fill="#000" opacity=".952"/><path d="M712.5 92.5c132-.167 264 0 396 .5 7.73 5.95 12.57 13.784 14.5 23.5.67 39.667.67 79.333 0 119-19.83 19.833-39.67 39.667-59.5 59.5l-124 1-10 5a3081.282 3081.282 0 0 1-65.5 66.5c-2.49 10.845 1.678 15.011 12.5 12.5a2862.062 2862.062 0 0 1 64-63c6.27-1.4 11.604.1 16 4.5 1.433 4.733 1.266 9.4-.5 14L789.5 502c-25.333.667-50.667.667-76 0-8.01-5.824-13.176-13.657-15.5-23.5a3842.33 3842.33 0 0 1 0-124c2.467-13.597 8.134-25.597 17-36l76-76c1.782-6.946-.885-11.612-8-14l-4.5 1.5a5106.766 5106.766 0 0 0-60 60.5c-6.19 3.958-12.357 3.958-18.5 0l-2-4c-.667-57-.667-114 0-171 .915-5.16 2.915-9.827 6-14 2.079-3.812 4.913-6.812 8.5-9Zm235 41c44.668-.167 89.33 0 134 .5 5.4 3.555 6.23 8.055 2.5 13.5A10987.464 10987.464 0 0 0 959.5 271c-43.75.989-87.417.656-131-1-5.95-4.986-6.45-10.486-1.5-16.5a20411.013 20411.013 0 0 1 120.5-120Z" fill="#000" opacity=".967"/><path d="M638.5 236.5c6.516-1.263 12.016.404 16.5 5 .986 81.37.653 162.702-1 244a75.761 75.761 0 0 1-12.5 16.5c-28.333.667-56.667.667-85 0-7.824-6.817-12.658-15.317-14.5-25.5-.667-40-.667-80 0-120 1.847-15.02 7.514-28.354 17-40a8930.283 8930.283 0 0 0 79.5-80Z" fill="#000" opacity=".969"/></svg>';
+
     event OrderedDataAdded(
         uint256 indexed cidNFTID,
         string indexed subprotocolName,
@@ -41,7 +44,6 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
     address internal feeWallet;
     address internal user1;
     address internal user2;
-    string internal constant BASE_URI = "tbd://base_uri/";
 
     MockToken internal note;
     SubprotocolRegistry internal subprotocolRegistry;
@@ -56,7 +58,7 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
 
         note = new MockToken();
         subprotocolRegistry = new SubprotocolRegistry(address(note), feeWallet);
-        cidNFT = new CidNFT("MockCidNFT", "MCNFT", BASE_URI, feeWallet, address(note), address(subprotocolRegistry));
+        cidNFT = new CidNFT("MockCidNFT", "MCNFT", feeWallet, address(note), address(subprotocolRegistry));
         AddressRegistry addressRegistry = new AddressRegistry(address(cidNFT));
         cidNFT.setAddressRegistry(address(addressRegistry));
         sub1 = new SubprotocolNFT();
@@ -672,7 +674,13 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         assertEq(note.balanceOf(user1), balSubOwner + subFee - cidFee);
     }
 
-    function testTokenURI() public {
+    function testTokenURINoNamespaceNFT() public {
+        string memory namespaceSubprotocolName = "namespace";
+        SubprotocolNFT namespace = new SubprotocolNFT();
+
+        vm.prank(user1);
+        subprotocolRegistry.register(false, true, false, address(namespace), namespaceSubprotocolName, 0);
+        cidNFT.changeNamespaceReference(namespaceSubprotocolName);
         uint256 id1 = cidNFT.numMinted() + 1;
         uint256 id2 = cidNFT.numMinted() + 2;
         uint256 nonExistId = cidNFT.numMinted() + 3;
@@ -682,8 +690,62 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
         cidNFT.mint(new CidNFT.MintAddData[](0));
 
         // exist id
-        assertEq(cidNFT.tokenURI(id1), BASE_URI);
-        assertEq(cidNFT.tokenURI(id2), BASE_URI);
+        assertEq(cidNFT.tokenURI(id1), SVG_FALLBACK);
+        assertEq(cidNFT.tokenURI(id2), SVG_FALLBACK);
+
+        // non-exist id
+        vm.expectRevert(abi.encodeWithSelector(CidNFT.TokenNotMinted.selector, nonExistId));
+        cidNFT.tokenURI(nonExistId);
+    }
+
+    function testTokenURINamespaceNFTReferenceNotSet() public {
+        uint256 id1 = cidNFT.numMinted() + 1;
+        uint256 id2 = cidNFT.numMinted() + 2;
+        uint256 nonExistId = cidNFT.numMinted() + 3;
+        // mint id1
+        cidNFT.mint(new CidNFT.MintAddData[](0));
+        // mint id2
+        cidNFT.mint(new CidNFT.MintAddData[](0));
+
+        // exist id
+        assertEq(cidNFT.tokenURI(id1), SVG_FALLBACK);
+        assertEq(cidNFT.tokenURI(id2), SVG_FALLBACK);
+
+        // non-exist id
+        vm.expectRevert(abi.encodeWithSelector(CidNFT.TokenNotMinted.selector, nonExistId));
+        cidNFT.tokenURI(nonExistId);
+    }
+
+    function testTokenURIWithAssociatedNamespaceNFT() public {
+        string memory namespaceSubprotocolName = "namespace";
+        string memory tokenUri1 = "abc";
+        string memory tokenUri2 = "def";
+        SubprotocolNFT namespace = new SubprotocolNFT();
+        namespace.setMockTokenURI(1, tokenUri1);
+        namespace.setMockTokenURI(2, tokenUri2);
+        cidNFT.changeNamespaceReference(namespaceSubprotocolName);
+
+        vm.startPrank(user1);
+        namespace.setApprovalForAll(address(cidNFT), true);
+        subprotocolRegistry.register(false, true, false, address(namespace), namespaceSubprotocolName, 0);
+        uint256 id1 = cidNFT.numMinted() + 1;
+        uint256 id2 = cidNFT.numMinted() + 2;
+        uint256 nonExistId = cidNFT.numMinted() + 3;
+        namespace.mint(user1, 1);
+        namespace.mint(user1, 2);
+        // mint id1
+        CidNFT.MintAddData[] memory addList1 = new CidNFT.MintAddData[](1);
+        addList1[0] = CidNFT.MintAddData(namespaceSubprotocolName, 0, 1, CidNFT.AssociationType.PRIMARY);
+        cidNFT.mint(addList1);
+        // mint id2
+        CidNFT.MintAddData[] memory addList2 = new CidNFT.MintAddData[](1);
+        addList2[0] = CidNFT.MintAddData(namespaceSubprotocolName, 0, 2, CidNFT.AssociationType.PRIMARY);
+        cidNFT.mint(addList2);
+        vm.stopPrank();
+
+        // exist id
+        assertEq(cidNFT.tokenURI(id1), tokenUri1);
+        assertEq(cidNFT.tokenURI(id2), tokenUri2);
 
         // non-exist id
         vm.expectRevert(abi.encodeWithSelector(CidNFT.TokenNotMinted.selector, nonExistId));
@@ -706,44 +768,36 @@ contract CidNFTTest is DSTest, ERC721TokenReceiver {
     }
 
     function testCallingSetAddressRegistryFromNonOwner() public {
-        CidNFT cidNFT2 = new CidNFT(
-            "MockCidNFT2",
-            "MCNFT2",
-            BASE_URI,
-            feeWallet,
-            address(note),
-            address(subprotocolRegistry)
-        );
+        CidNFT cidNFT2 = new CidNFT("MockCidNFT2", "MCNFT2", feeWallet, address(note), address(subprotocolRegistry));
         vm.prank(user1);
         vm.expectRevert("UNAUTHORIZED");
         cidNFT2.setAddressRegistry(address(0));
     }
 
     function testChangeNoteAddressFromNonOwner() public {
-        CidNFT cidNFT2 = new CidNFT(
-            "MockCidNFT2",
-            "MCNFT2",
-            BASE_URI,
-            feeWallet,
-            address(note),
-            address(subprotocolRegistry)
-        );
+        CidNFT cidNFT2 = new CidNFT("MockCidNFT2", "MCNFT2", feeWallet, address(note), address(subprotocolRegistry));
         vm.prank(user1);
         vm.expectRevert("UNAUTHORIZED");
         cidNFT2.changeNoteAddress(address(0));
     }
 
     function testChangeNoteAddressFromOwner() public {
-        CidNFT cidNFT2 = new CidNFT(
-            "MockCidNFT2",
-            "MCNFT2",
-            BASE_URI,
-            feeWallet,
-            address(note),
-            address(subprotocolRegistry)
-        );
+        CidNFT cidNFT2 = new CidNFT("MockCidNFT2", "MCNFT2", feeWallet, address(note), address(subprotocolRegistry));
         cidNFT2.changeNoteAddress(address(0));
         assertEq(address(cidNFT2.note()), address(0));
+    }
+
+    function testChangeNamespaceNameFromNonOwner() public {
+        CidNFT cidNFT2 = new CidNFT("MockCidNFT2", "MCNFT2", feeWallet, address(note), address(subprotocolRegistry));
+        vm.prank(user1);
+        vm.expectRevert("UNAUTHORIZED");
+        cidNFT2.changeNamespaceReference("test");
+    }
+
+    function testChangeNamespaceNameFromOwner() public {
+        CidNFT cidNFT2 = new CidNFT("MockCidNFT2", "MCNFT2", feeWallet, address(note), address(subprotocolRegistry));
+        cidNFT2.changeNamespaceReference("test");
+        assertEq(cidNFT2.namespaceSubprotocolName(), "test");
     }
 
     function onERC721Received(
