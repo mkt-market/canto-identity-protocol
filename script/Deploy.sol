@@ -12,6 +12,7 @@ contract DeploymentScript is Script {
     address constant FEE_WALLET = address(0); // TODO
     string cidNFTName = "Canto Identity Protocol";
     string cidNFTSymbol = "CID";
+    string namespaceSubprotocolName = "namespace";
 
     function setUp() public {}
 
@@ -23,6 +24,7 @@ contract DeploymentScript is Script {
         CidNFT cidNFT = _deployCidNft(subprotocolRegistry);
         address addressRegistry = _deployAddressRegistry(address(cidNFT));
         _setAddressRegistryOnCID(cidNFT, addressRegistry);
+        cidNFT.changeNamespaceReference(namespaceSubprotocolName);
         vm.stopBroadcast();
     }
 
