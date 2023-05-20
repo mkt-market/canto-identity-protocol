@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity >=0.8.0;
 
-import "solmate/tokens/ERC721.sol";
+import {IERC721} from "@openzeppelin/contracts/interfaces/IERC721.sol";
 import "../interface/Turnstile.sol";
 
 /// @title Address Registry
@@ -47,7 +47,7 @@ contract AddressRegistry {
     /// @notice Register a CID NFT to the address of the caller. NFT has to be owned by the caller
     /// @dev Will overwrite existing registration if any exists
     function register(uint256 _cidNFTID) external {
-        if (ERC721(cidNFT).ownerOf(_cidNFTID) != msg.sender)
+        if (IERC721(cidNFT).ownerOf(_cidNFTID) != msg.sender)
             // ownerOf reverts if non-existing ID is provided
             revert NFTNotOwnedByUser(_cidNFTID, msg.sender);
         cidNFTs[msg.sender] = _cidNFTID;
@@ -84,7 +84,7 @@ contract AddressRegistry {
     /// @param _cidNFTID CID NFT ID to query
     /// @return user The user that is currently registered for the given CID NFT. address(0) if no user is registered
     function getAddress(uint256 _cidNFTID) external view returns (address user) {
-        user = ERC721(cidNFT).ownerOf(_cidNFTID);
+        user = IERC721(cidNFT).ownerOf(_cidNFTID);
         if (_cidNFTID != cidNFTs[user]) {
             // User owns CID NFT, but has not registered it
             user = address(0);

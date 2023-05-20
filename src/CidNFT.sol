@@ -1,17 +1,19 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity >=0.8.0;
 
-import {ERC721} from "solmate/tokens/ERC721.sol";
+import {ERC721Enumerable, IERC721, ERC721} from "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "solmate/tokens/ERC20.sol";
 import "solmate/utils/SafeTransferLib.sol";
 import "solmate/auth/Owned.sol";
-import "./SubprotocolRegistry.sol";
-import "./AddressRegistry.sol";
+import {SubprotocolRegistry} from "./SubprotocolRegistry.sol";
+import {AddressRegistry} from "./AddressRegistry.sol";
+import {LibString} from "solady/utils/LibString.sol";
+import {Base64} from "solady/utils/Base64.sol";
 import "../interface/Turnstile.sol";
 
 /// @title Canto Identity Protocol NFT
 /// @notice CID NFTs are at the heart of the CID protocol. All key/values of subprotocols are associated with them.
-contract CidNFT is ERC721, Owned {
+contract CidNFT is ERC721Enumerable, Owned {
     /*//////////////////////////////////////////////////////////////
                                  CONSTANTS
     //////////////////////////////////////////////////////////////*/
@@ -164,12 +166,23 @@ contract CidNFT is ERC721, Owned {
     /// @param _id ID to retrieve the URI for
     /// @return tokenURI The URI of the queried token (path to a JSON file)
     function tokenURI(uint256 _id) public view override returns (string memory) {
-        if (_ownerOf[_id] == address(0))
+        if (!_exists(_id))
             // According to ERC721, this revert for non-existing tokens is required
             revert TokenNotMinted(_id);
         uint256 namespaceNFTID = cidData[_id][namespaceSubprotocolName].primary;
         if (namespaceNFTID == 0) {
-            return SVG_FALLBACK; // TODO: Properly encode
+            string memory json = Base64.encode(
+                bytes(
+                    string.concat(
+                        '{"name": "CID #',
+                        LibString.toString(_id),
+                        '", "image": "data:image/svg+xml;base64,',
+                        Base64.encode(SVG_FALLBACK),
+                        '"}'
+                    )
+                )
+            );
+            return string.concat("data:application/json;base64,", json);
         } else {
             address subprotocolNFTAddress = subprotocolRegistry.getSubprotocol(namespaceSubprotocolName).nftAddress;
             return ERC721(subprotocolNFTAddress).tokenURI(namespaceNFTID);
@@ -206,11 +219,11 @@ contract CidNFT is ERC721, Owned {
         );
         address subprotocolOwner = subprotocolData.owner;
         if (subprotocolOwner == address(0)) revert SubprotocolDoesNotExist(_subprotocolName);
-        address cidNFTOwner = _ownerOf[_cidNFTID];
+        address cidNFTOwner = _ownerOf(_cidNFTID);
         if (
             cidNFTOwner != msg.sender &&
-            getApproved[_cidNFTID] != msg.sender &&
-            !isApprovedForAll[cidNFTOwner][msg.sender]
+            getApproved(_cidNFTID) != msg.sender &&
+            !isApprovedForAll(cidNFTOwner, msg.sender)
         ) revert NotAuthorizedForCIDNFT(msg.sender, _cidNFTID, cidNFTOwner);
         if (_nftIDToAdd == 0) revert NFTIDZeroDisallowedForSubprotocols(); // ID 0 is disallowed in subprotocols
 
@@ -290,11 +303,11 @@ contract CidNFT is ERC721, Owned {
         );
         address subprotocolOwner = subprotocolData.owner;
         if (subprotocolOwner == address(0)) revert SubprotocolDoesNotExist(_subprotocolName);
-        address cidNFTOwner = _ownerOf[_cidNFTID];
+        address cidNFTOwner = _ownerOf(_cidNFTID);
         if (
             cidNFTOwner != msg.sender &&
-            getApproved[_cidNFTID] != msg.sender &&
-            !isApprovedForAll[cidNFTOwner][msg.sender]
+            getApproved(_cidNFTID) != msg.sender &&
+            !isApprovedForAll(cidNFTOwner, msg.sender)
         ) revert NotAuthorizedForCIDNFT(msg.sender, _cidNFTID, cidNFTOwner);
 
         ERC721 nftToRemove = ERC721(subprotocolData.nftAddress);
@@ -459,7 +472,7 @@ contract CidNFT is ERC721, Owned {
         address from,
         address to,
         uint256 id
-    ) public override {
+    ) public override(ERC721, IERC721) {
         super.transferFrom(from, to, id);
         addressRegistry.removeOnTransfer(from, id);
     }

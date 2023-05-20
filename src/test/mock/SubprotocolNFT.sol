@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-only
-import {ERC721} from "solmate/tokens/ERC721.sol";
+import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 pragma solidity >=0.8.0;
 

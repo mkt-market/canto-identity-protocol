@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-only
 pragma solidity >=0.8.0;
 
-import "solmate/tokens/ERC721.sol";
+import {IERC721} from "@openzeppelin/contracts/interfaces/IERC721.sol";
 import "solmate/tokens/ERC20.sol";
 import "solmate/utils/SafeTransferLib.sol";
 import "../interface/Turnstile.sol";
@@ -95,7 +95,7 @@ contract SubprotocolRegistry {
         if (subprotocolData.owner != address(0)) revert SubprotocolAlreadyExists(_name, subprotocolData.owner);
         subprotocolData.owner = msg.sender;
         subprotocolData.fee = _fee;
-        if (!ERC721(_nftAddress).supportsInterface(0x80ac58cd)) revert NotANFT(_nftAddress);
+        if (!IERC721(_nftAddress).supportsInterface(0x80ac58cd)) revert NotANFT(_nftAddress);
         subprotocolData.nftAddress = _nftAddress;
         subprotocolData.ordered = _ordered;
         subprotocolData.primary = _primary;
