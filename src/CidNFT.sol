@@ -169,7 +169,7 @@ contract CidNFT is ERC721, Owned {
             revert TokenNotMinted(_id);
         uint256 namespaceNFTID = cidData[_id][namespaceSubprotocolName].primary;
         if (namespaceNFTID == 0) {
-            return SVG_FALLBACK;
+            return SVG_FALLBACK; // TODO: Properly encode
         } else {
             address subprotocolNFTAddress = subprotocolRegistry.getSubprotocol(namespaceSubprotocolName).nftAddress;
             return ERC721(subprotocolNFTAddress).tokenURI(namespaceNFTID);
