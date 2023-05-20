@@ -12,11 +12,6 @@
         "type": "string"
       },
       {
-        "internalType": "string",
-        "name": "_baseURI",
-        "type": "string"
-      },
-      {
         "internalType": "address",
         "name": "_cidFeeWallet",
         "type": "address"
@@ -262,13 +257,13 @@
       {
         "indexed": true,
         "internalType": "address",
-        "name": "spender",
+        "name": "approved",
         "type": "address"
       },
       {
         "indexed": true,
         "internalType": "uint256",
-        "name": "id",
+        "name": "tokenId",
         "type": "uint256"
       }
     ],
@@ -449,7 +444,7 @@
       {
         "indexed": true,
         "internalType": "uint256",
-        "name": "id",
+        "name": "tokenId",
         "type": "uint256"
       }
     ],
@@ -548,12 +543,12 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "spender",
+        "name": "to",
         "type": "address"
       },
       {
         "internalType": "uint256",
-        "name": "id",
+        "name": "tokenId",
         "type": "uint256"
       }
     ],
@@ -582,16 +577,16 @@
     "type": "function"
   },
   {
-    "inputs": [],
-    "name": "baseURI",
-    "outputs": [
+    "inputs": [
       {
         "internalType": "string",
-        "name": "",
+        "name": "_namespaceSubprotocolName",
         "type": "string"
       }
     ],
-    "stateMutability": "view",
+    "name": "changeNamespaceReference",
+    "outputs": [],
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -677,7 +672,7 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "",
+        "name": "tokenId",
         "type": "uint256"
       }
     ],
@@ -802,12 +797,12 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "",
+        "name": "owner",
         "type": "address"
       },
       {
         "internalType": "address",
-        "name": "",
+        "name": "operator",
         "type": "address"
       }
     ],
@@ -872,6 +867,19 @@
   },
   {
     "inputs": [],
+    "name": "namespaceSubprotocolName",
+    "outputs": [
+      {
+        "internalType": "string",
+        "name": "",
+        "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "note",
     "outputs": [
       {
@@ -913,7 +921,7 @@
     "inputs": [
       {
         "internalType": "uint256",
-        "name": "id",
+        "name": "tokenId",
         "type": "uint256"
       }
     ],
@@ -921,7 +929,7 @@
     "outputs": [
       {
         "internalType": "address",
-        "name": "owner",
+        "name": "",
         "type": "address"
       }
     ],
@@ -975,7 +983,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "id",
+        "name": "tokenId",
         "type": "uint256"
       }
     ],
@@ -998,7 +1006,7 @@
       },
       {
         "internalType": "uint256",
-        "name": "id",
+        "name": "tokenId",
         "type": "uint256"
       },
       {
@@ -1092,6 +1100,49 @@
     "inputs": [
       {
         "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      }
+    ],
+    "name": "tokenByIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "address",
+        "name": "owner",
+        "type": "address"
+      },
+      {
+        "internalType": "uint256",
+        "name": "index",
+        "type": "uint256"
+      }
+    ],
+    "name": "tokenOfOwnerByIndex",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {
+        "internalType": "uint256",
         "name": "_id",
         "type": "uint256"
       }
@@ -1102,6 +1153,19 @@
         "internalType": "string",
         "name": "",
         "type": "string"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "totalSupply",
+    "outputs": [
+      {
+        "internalType": "uint256",
+        "name": "",
+        "type": "uint256"
       }
     ],
     "stateMutability": "view",

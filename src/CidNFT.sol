@@ -177,7 +177,7 @@ contract CidNFT is ERC721Enumerable, Owned {
                         '{"name": "CID #',
                         LibString.toString(_id),
                         '", "image": "data:image/svg+xml;base64,',
-                        Base64.encode(SVG_FALLBACK),
+                        Base64.encode(bytes(SVG_FALLBACK)),
                         '"}'
                     )
                 )
