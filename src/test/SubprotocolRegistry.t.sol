@@ -38,7 +38,7 @@ contract SubprotocolRegistryTest is DSTest {
         token = new MockToken();
         subprotocolRegistry = new SubprotocolRegistry(address(token), feeWallet);
 
-        feeAmount = subprotocolRegistry.REGISTER_FEE();
+        feeAmount = subprotocolRegistry.registrationFee();
 
         vm.prank(user1);
         token.approve(address(subprotocolRegistry), type(uint256).max);

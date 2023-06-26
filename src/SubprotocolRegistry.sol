@@ -4,17 +4,18 @@ pragma solidity >=0.8.0;
 import {IERC721} from "@openzeppelin/contracts/interfaces/IERC721.sol";
 import "solmate/tokens/ERC20.sol";
 import "solmate/utils/SafeTransferLib.sol";
+import "solmate/auth/Owned.sol";
 import "../interface/Turnstile.sol";
 
 /// @title Subprotocol Registry
 /// @notice Enables registration of new subprotocols
-contract SubprotocolRegistry {
+contract SubprotocolRegistry is Owned {
     /*//////////////////////////////////////////////////////////////
                                  STATE
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Fee for registering a new subprotocol (100 $NOTE)
-    uint256 public constant REGISTER_FEE = 100 * 10**18;
+    uint256 public registrationFee = 100 * 10**18;
 
     /// @notice Reference to the $NOTE TOKEN
     ERC20 public immutable note;
@@ -62,7 +63,7 @@ contract SubprotocolRegistry {
     /// @notice Sets the reference to the $NOTE contract
     /// @param _noteContract Address of the $NOTE contract
     /// @param _cidFeeWallet Address of the wallet that receives the fees
-    constructor(address _noteContract, address _cidFeeWallet) {
+    constructor(address _noteContract, address _cidFeeWallet) Owned(msg.sender) {
         note = ERC20(_noteContract);
         cidFeeWallet = _cidFeeWallet;
         if (block.chainid == 7700 || block.chainid == 7701) {
@@ -89,7 +90,7 @@ contract SubprotocolRegistry {
         string calldata _name,
         uint96 _fee
     ) external {
-        SafeTransferLib.safeTransferFrom(note, msg.sender, cidFeeWallet, REGISTER_FEE);
+        SafeTransferLib.safeTransferFrom(note, msg.sender, cidFeeWallet, registrationFee);
         if (!(_ordered || _primary || _active)) revert NoTypeSpecified(_name);
         SubprotocolData memory subprotocolData = subprotocols[_name];
         if (subprotocolData.owner != address(0)) revert SubprotocolAlreadyExists(_name, subprotocolData.owner);
@@ -109,5 +110,11 @@ contract SubprotocolRegistry {
     /// @return subprotocolData stored under _name. owner will be set to address(0) if subprotocol does not exist
     function getSubprotocol(string calldata _name) external view returns (SubprotocolData memory) {
         return subprotocols[_name];
+    }
+
+    /// @notice Changes the registration fee
+    /// @param _registrationFee New fee (in NOTE)
+    function changeRegistrationFee(uint256 _registrationFee) external onlyOwner {
+        registrationFee = _registrationFee;
     }
 }
