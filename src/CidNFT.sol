@@ -30,7 +30,7 @@ contract CidNFT is ERC721Enumerable, Owned {
     //////////////////////////////////////////////////////////////*/
 
     /// @notice Wallet that receives CID fees
-    address public immutable cidFeeWallet;
+    address public cidFeeWallet;
 
     /// @notice Reference to the NOTE TOKEN
     ERC20 public note;
@@ -465,6 +465,12 @@ contract CidNFT is ERC721Enumerable, Owned {
     /// @param _namespaceSubprotocolName Registered name of the namespace subprotocol name
     function changeNamespaceReference(string memory _namespaceSubprotocolName) external onlyOwner {
         namespaceSubprotocolName = _namespaceSubprotocolName;
+    }
+
+    /// @notice Change the fee wallet
+    /// @param _cidFeeWallet Address of the fee wallet
+    function changeFeeWallet(address _cidFeeWallet) external onlyOwner {
+        cidFeeWallet = _cidFeeWallet;
     }
 
     /// @notice Override transferFrom to deregister CID NFT in address registry if registered
