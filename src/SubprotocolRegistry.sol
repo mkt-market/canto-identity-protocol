@@ -21,7 +21,7 @@ contract SubprotocolRegistry is Owned {
     ERC20 public immutable note;
 
     /// @notice Wallet that receives fees paid when registering
-    address public immutable cidFeeWallet;
+    address public cidFeeWallet;
 
     /// @notice Data that is associated with a subprotocol.
     /// @dev Data types are chosen such that all data fits in one slot
@@ -116,5 +116,11 @@ contract SubprotocolRegistry is Owned {
     /// @param _registrationFee New fee (in NOTE)
     function changeRegistrationFee(uint256 _registrationFee) external onlyOwner {
         registrationFee = _registrationFee;
+    }
+
+    /// @notice Changes the CID Fee Wallet
+    /// @param _cidFeeWallet New fee wallet address
+    function changeRegistrationFee(address _cidFeeWallet) external onlyOwner {
+        cidFeeWallet = _cidFeeWallet;
     }
 }
