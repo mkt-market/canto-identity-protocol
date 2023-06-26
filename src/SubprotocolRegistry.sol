@@ -18,7 +18,7 @@ contract SubprotocolRegistry is Owned {
     uint256 public registrationFee = 100 * 10**18;
 
     /// @notice Reference to the $NOTE TOKEN
-    ERC20 public immutable note;
+    ERC20 public note;
 
     /// @notice Wallet that receives fees paid when registering
     address public cidFeeWallet;
@@ -122,5 +122,11 @@ contract SubprotocolRegistry is Owned {
     /// @param _cidFeeWallet New fee wallet address
     function changeRegistrationFee(address _cidFeeWallet) external onlyOwner {
         cidFeeWallet = _cidFeeWallet;
+    }
+
+    /// @notice Change the $NOTE address
+    /// @param _noteAddress Address of the $NOTE token
+    function changeNoteAddress(address _noteAddress) external onlyOwner {
+        note = ERC20(_noteAddress);
     }
 }
